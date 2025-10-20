@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Principal — F/Design Solutions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #fbbc04 0%, #2b5797 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      width: 140px;
+      height: auto;
+    }
+
+    .company-info h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2b5797;
+      margin-bottom: 2px;
+    }
+
+    .company-info p {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: #374151;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fbbc04, #2b5797);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .logout-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: #b91c1c;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+
+    .welcome-section {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .welcome-section h2 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .welcome-section p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 25px;
+      margin-bottom: 40px;
+    }
+
+    .dashboard-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+
+    .card-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #2b5797;
+      margin-bottom: 10px;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .charts-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-bottom: 40px;
+    }
+
+    .chart-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .chart-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .action-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+
+    .action-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .action-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .action-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 5px;
+    }
+
+    .action-description {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 16px;
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .charts-section {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      .welcome-section h2 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="logo-section">
+      <img src="https://fdesignsolutions.com/wp-content/uploads/2023/08/logo-F-design-branca-768x231.webp"
+           alt="F/Design Solutions"
+           class="logo">
+      <div class="company-info">
+        <h1>F/Design Solutions</h1>
+        <p>Newark, NJ</p>
+      </div>
+    </div>
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">U</div>
+      <span id="userName">Carregando...</span>
+      <button class="logout-btn" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="welcome-section">
+      <h2 id="welcomeMessage">Bem-vindo ao Sistema F/Design!</h2>
+      <p>Acesse suas ferramentas e acompanhe seu desempenho</p>
+    </div>
+
+    <div id="loadingState" class="loading">
+      Carregando dados do dashboard...
+    </div>
+
+    <div id="dashboardContent" style="display: none;">
+      <!-- Cards de Métricas -->
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <div class="card-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💰</div>
+          <div class="card-title">Total de Vendas</div>
+          <div class="card-value" id="totalVendas">$0.00</div>
+          <div class="card-subtitle">Valor total das vendas realizadas</div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="card-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📈</div>
+          <div class="card-title">Comissões</div>
+          <div class="card-value" id="totalComissoes">$0.00</div>
+          <div class="card-subtitle">Total de comissões recebidas</div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="card-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">📋</div>
+          <div class="card-title">Orçamentos</div>
+          <div class="card-value" id="totalOrcamentos">0</div>
+          <div class="card-subtitle">Orçamentos ativos no sistema</div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="card-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">🎯</div>
+          <div class="card-title">Taxa de Conversão</div>
+          <div class="card-value" id="taxaConversao">0%</div>
+          <div class="card-subtitle">Conversão de orçamento para venda</div>
+        </div>
+      </div>
+
+      <!-- Gráficos -->
+      <div class="charts-section">
+        <div class="chart-card">
+          <div class="chart-title">📊 Vendas por Mês</div>
+          <div id="chartVendasMensal" style="height: 300px;"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">📋 Status dos Orçamentos</div>
+          <div id="chartOrcamentos" style="height: 300px;"></div>
+        </div>
+      </div>
+
+      <!-- Ações Rápidas -->
+      <div class="quick-actions">
+        <div class="action-card" onclick="abrirFormVendas()">
+          <span class="action-icon">💰</span>
+          <div class="action-title">Registrar Venda</div>
+          <div class="action-description">Adicione uma nova venda ao sistema</div>
+        </div>
+
+        <div class="action-card" onclick="abrirDashboardVendas()">
+          <span class="action-icon">📊</span>
+          <div class="action-title">Dashboard de Vendas</div>
+          <div class="action-description">Visualize relatórios detalhados</div>
+        </div>
+
+        <div class="action-card" onclick="abrirPainelAdmin()" id="adminCard" style="display: none;">
+          <span class="action-icon">⚙️</span>
+          <div class="action-title">Painel Administrativo</div>
+          <div class="action-description">Gerencie usuários e configurações</div>
+        </div>
+
+        <div class="action-card" onclick="abrirFormGerenciar()">
+          <span class="action-icon">📝</span>
+          <div class="action-title">Gerenciar Registros</div>
+          <div class="action-description">Edite ou exclua registros existentes</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="errorState" class="error-message" style="display: none;">
+      Erro ao carregar dados do dashboard. Tente novamente.
+    </div>
+  </div>
+
+  <script>
+    // =========================================
+    // VARIÁVEIS GLOBAIS
+    // =========================================
+    let dashboardData = null;
+
+    // =========================================
+    // INICIALIZAÇÃO
+    // =========================================
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Inicializando dashboard principal...');
+      carregarDashboard();
+    });
+
+    // Carregar Google Charts
+    google.charts.load('current', {'packages':['corechart', 'bar']});
+
+    // =========================================
+    // CARREGAR DADOS DO DASHBOARD
+    // =========================================
+    function carregarDashboard() {
+      google.script.run
+        .withSuccessHandler(onSuccessCarregarDashboard)
+        .withFailureHandler(onErrorCarregarDashboard)
+        .obterDadosDashboard();
+    }
+
+    function onSuccessCarregarDashboard(data) {
+      console.log('✅ Dados do dashboard recebidos:', data);
+
+      if (data.erro) {
+        mostrarErro(data.mensagem);
+        return;
+      }
+
+      dashboardData = data;
+      renderizarDashboard(data);
+      verificarPermissoesAdmin();
+    }
+
+    function onErrorCarregarDashboard(error) {
+      console.error('❌ Erro ao carregar dashboard:', error);
+      mostrarErro('Erro de conexão: ' + error.message);
+    }
+
+    // =========================================
+    // RENDERIZAR DASHBOARD
+    // =========================================
+    function renderizarDashboard(data) {
+      // Ocultar loading
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = 'block';
+
+      // Atualizar informações do usuário
+      document.getElementById('userName').textContent = data.nome || 'Usuário';
+      document.getElementById('userAvatar').textContent = (data.nome || 'U').charAt(0).toUpperCase();
+      document.getElementById('welcomeMessage').textContent = `Bem-vindo, ${data.nome}!`;
+
+      // Atualizar métricas
+      document.getElementById('totalVendas').textContent = `$${data.totalVendas}`;
+      document.getElementById('totalComissoes').textContent = `$${data.totalComissao}`;
+      document.getElementById('totalOrcamentos').textContent = data.totalOrcamentos;
+      document.getElementById('taxaConversao').textContent = '0%'; // Será calculado se necessário
+
+      // Renderizar gráficos
+      google.charts.setOnLoadCallback(function() {
+        renderizarGraficoVendas(data.graficoVendas);
+        renderizarGraficoOrcamentos(data.graficoOrcamentos);
+      });
+    }
+
+    function renderizarGraficoVendas(dadosGrafico) {
+      if (!dadosGrafico || dadosGrafico.length === 0) {
+        document.getElementById('chartVendasMensal').innerHTML = '<p style="text-align: center; color: #6b7280;">Nenhum dado disponível</p>';
+        return;
+      }
+
+      const data = google.visualization.arrayToDataTable(dadosGrafico);
+      const chart = new google.visualization.ColumnChart(document.getElementById('chartVendasMensal'));
+      chart.draw(data, {
+        legend: { position: 'none' },
+        colors: ['#2b5797'],
+        vAxis: { title: 'Valor ($)' },
+        hAxis: { title: 'Mês' }
+      });
+    }
+
+    function renderizarGraficoOrcamentos(dadosGrafico) {
+      if (!dadosGrafico || dadosGrafico.length === 0) {
+        document.getElementById('chartOrcamentos').innerHTML = '<p style="text-align: center; color: #6b7280;">Nenhum dado disponível</p>';
+        return;
+      }
+
+      const data = google.visualization.arrayToDataTable(dadosGrafico);
+      const chart = new google.visualization.PieChart(document.getElementById('chartOrcamentos'));
+      chart.draw(data, {
+        legend: { position: 'bottom' },
+        colors: ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+        pieHole: 0.4
+      });
+    }
+
+    // =========================================
+    // VERIFICAR PERMISSÕES
+    // =========================================
+    function verificarPermissoesAdmin() {
+      google.script.run
+        .withSuccessHandler(function(permissoes) {
+          if (permissoes.autenticado && permissoes.podeGerenciar) {
+            document.getElementById('adminCard').style.display = 'block';
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.log('⚠️ Não foi possível verificar permissões:', error);
+        })
+        .obterPermissoesAtuais();
+    }
+
+    // =========================================
+    // AÇÕES RÁPIDAS
+    // =========================================
+    function abrirFormVendas() {
+      google.script.run.abrirFormVendas();
+    }
+
+    function abrirDashboardVendas() {
+      google.script.run.abrirDashboardVendas();
+    }
+
+    function abrirPainelAdmin() {
+      google.script.run.abrirPainelAdmin();
+    }
+
+    function abrirFormGerenciar() {
+      google.script.run.abrirFormGerenciar();
+    }
+
+    // =========================================
+    // LOGOUT
+    // =========================================
+    function logout() {
+      if (confirm('Deseja realmente sair do sistema?')) {
+        google.script.run.encerrarSessao();
+        google.script.host.close();
+      }
+    }
+
+    // =========================================
+    // UTILITÁRIOS
+    // =========================================
+    function mostrarErro(mensagem) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = 'none';
+      const errorDiv = document.getElementById('errorState');
+      errorDiv.textContent = mensagem;
+      errorDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

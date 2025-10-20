@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — F/Design Solutions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #fbbc04 0%, #2b5797 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #fbbc04, #2b5797);
+    }
+
+    .logo-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 15px;
+    }
+
+    .company-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2b5797;
+      margin-bottom: 5px;
+    }
+
+    .company-tagline {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .form-input {
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #2b5797;
+      box-shadow: 0 0 0 3px rgba(43, 87, 151, 0.1);
+    }
+
+    .login-btn {
+      background: linear-gradient(135deg, #fbbc04, #e0a800);
+      color: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .login-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(251, 188, 4, 0.3);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top: 2px solid #000;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      background: #fef2f2;
+      color: #dc2626;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #dc2626;
+      font-size: 14px;
+      display: none;
+    }
+
+    .success-message {
+      background: #f0fdf4;
+      color: #16a34a;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #16a34a;
+      font-size: 14px;
+      display: none;
+    }
+
+    .auto-login-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+    }
+
+    .auto-login-btn {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .auto-login-btn:hover {
+      background: #e5e7eb;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .footer a {
+      color: #2b5797;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 30px 20px;
+      }
+
+      .logo {
+        width: 100px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <div class="logo-section">
+      <img src="https://fdesignsolutions.com/wp-content/uploads/2023/08/logo-F-design-azul-1024x308.webp"
+           alt="F/Design Solutions"
+           class="logo">
+      <div class="company-name">F/Design Solutions</div>
+      <div class="company-tagline">Newark, NJ</div>
+    </div>
+
+    <form class="login-form" id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="email">E-mail</label>
+        <input type="email" id="email" class="form-input" placeholder="seu@email.com" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pin">PIN de Acesso</label>
+        <input type="password" id="pin" class="form-input" placeholder="Digite seu PIN" required>
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn">
+        <span id="btnText">Entrar no Sistema</span>
+        <div class="spinner" id="spinner" style="display: none;"></div>
+      </button>
+    </form>
+
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+
+    <div class="auto-login-section">
+      <button class="auto-login-btn" onclick="tentarLoginAutomatico()">
+        🔄 Tentar Login Automático
+      </button>
+    </div>
+
+    <div class="footer">
+      © 2025 F/Design Solutions — Sistema Seguro
+    </div>
+  </div>
+
+  <script>
+    // =========================================
+    // VARIÁVEIS GLOBAIS
+    // =========================================
+    let loginTentativas = 0;
+    const MAX_TENTATIVAS = 3;
+
+    // =========================================
+    // INICIALIZAÇÃO
+    // =========================================
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Sistema de Login F/Design Solutions inicializado');
+
+      // Tentar login automático ao carregar
+      setTimeout(tentarLoginAutomatico, 500);
+
+      // Configurar formulário
+      document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    });
+
+    // =========================================
+    // LOGIN MANUAL
+    // =========================================
+    function handleLogin(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const pin = document.getElementById('pin').value.trim();
+
+      if (!email || !pin) {
+        mostrarErro('Preencha todos os campos.');
+        return;
+      }
+
+      if (loginTentativas >= MAX_TENTATIVAS) {
+        mostrarErro('Muitas tentativas. Aguarde alguns minutos.');
+        return;
+      }
+
+      setLoadingState(true);
+      ocultarMensagens();
+
+      google.script.run
+        .withSuccessHandler(onLoginSuccess)
+        .withFailureHandler(onLoginError)
+        .loginManual(email, pin);
+    }
+
+    // =========================================
+    // LOGIN AUTOMÁTICO
+    // =========================================
+    function tentarLoginAutomatico() {
+      console.log('🔄 Tentando login automático...');
+
+      google.script.run
+        .withSuccessHandler(onAutoLoginResult)
+        .withFailureHandler(onAutoLoginError)
+        .loginAutomatico();
+    }
+
+    function onAutoLoginResult(result) {
+      console.log('📋 Resultado login automático:', result);
+
+      if (result.success && result.type === 'registered') {
+        mostrarSucesso('Login automático realizado! Redirecionando...');
+        setTimeout(() => {
+          google.script.run.iniciarSistemaFDesign();
+        }, 1500);
+      } else if (result.type === 'unregistered') {
+        mostrarErro('Conta não cadastrada. Use login manual.');
+      } else {
+        console.log('ℹ️ Login automático não aplicável');
+      }
+    }
+
+    function onAutoLoginError(error) {
+      console.log('⚠️ Erro no login automático (esperado):', error);
+    }
+
+    // =========================================
+    // HANDLERS DE RESPOSTA
+    // =========================================
+    function onLoginSuccess(result) {
+      console.log('✅ Login bem-sucedido:', result);
+      setLoadingState(false);
+
+      if (result.success) {
+        mostrarSucesso('Login realizado com sucesso! Redirecionando...');
+        loginTentativas = 0; // Resetar contador
+
+        setTimeout(() => {
+          google.script.run.iniciarSistemaFDesign();
+        }, 1500);
+      } else {
+        loginTentativas++;
+        mostrarErro(result.message || 'Erro no login.');
+      }
+    }
+
+    function onLoginError(error) {
+      console.error('❌ Erro no login:', error);
+      setLoadingState(false);
+      loginTentativas++;
+      mostrarErro('Erro de conexão. Tente novamente.');
+    }
+
+    // =========================================
+    // UTILITÁRIOS DE UI
+    // =========================================
+    function setLoadingState(loading) {
+      const btn = document.getElementById('loginBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+
+      btn.disabled = loading;
+      spinner.style.display = loading ? 'inline-block' : 'none';
+      btnText.textContent = loading ? 'Entrando...' : 'Entrar no Sistema';
+    }
+
+    function mostrarErro(mensagem) {
+      const errorDiv = document.getElementById('errorMessage');
+      const successDiv = document.getElementById('successMessage');
+
+      errorDiv.textContent = mensagem;
+      errorDiv.style.display = 'block';
+      successDiv.style.display = 'none';
+    }
+
+    function mostrarSucesso(mensagem) {
+      const errorDiv = document.getElementById('errorMessage');
+      const successDiv = document.getElementById('successMessage');
+
+      successDiv.textContent = mensagem;
+      successDiv.style.display = 'block';
+      errorDiv.style.display = 'none';
+    }
+
+    function ocultarMensagens() {
+      document.getElementById('errorMessage').style.display = 'none';
+      document.getElementById('successMessage').style.display = 'none';
+    }
+
+    // =========================================
+    // SEGURANÇA ADICIONAL
+    // =========================================
+    // Prevenir inspeção do código fonte
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+    });
+
+    // Prevenir atalhos comuns
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+      }
+    });
+  </script>
+</body>
+</html>
