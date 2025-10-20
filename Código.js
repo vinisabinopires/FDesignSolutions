@@ -12,9 +12,10 @@
 // ===============================================================
 
 const NOME_ABA_USUARIOS = 'USUARIOS';
-const NOME_ABA_VENDAS = 'TABLEA DE VENDAS';
-const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS';
-const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABLEA DE ORCAMENTOS';
+const NOME_ABA_USUARIOS = 'USUARIOS';
+const NOME_ABA_VENDAS = 'TABLEA DE VENDAS'; // Nome real da aba
+const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS'; // Primária
+const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABLEA DE ORCAMENTOS'; // Fallback
 const NOME_ABA_CLIENT_LIST = 'Client_List';
 const NOME_ABA_CONFIG = 'CONFIG';
 const NOME_ABA_AUDITORIA = 'AUDITORIA';
@@ -605,17 +606,17 @@ function calcularMetricasVenda(sale, budgets) {
 function obterDadosAdmin() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
-    const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
+const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
+const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
 
-    // Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
-    const sheetOrcamentosPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
-    const sheetOrcamentos = sheetOrcamentosPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
-    if (!sheetOrcamentosPrimario && sheetOrcamentos) {
-      console.warn(`ℹ️ Utilizando aba fallback: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
-    }
+// 🔄 Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
+const sheetOrcamentosPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
+const sheetOrcamentos = sheetOrcamentosPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
+if (!sheetOrcamentosPrimario && sheetOrcamentos) {
+  console.warn(`⚠️ Utilizando aba fallback: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
+}
 
-    const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
+const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
 
     if (!sheetUsuarios) throw new Error("Aba 'USUARIOS' não encontrada.");
     
@@ -775,6 +776,10 @@ function registrarVenda(dados) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const aba = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
+
+    if (!aba) {
+      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
+    }
 
     if (!aba) {
       throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
