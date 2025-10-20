@@ -734,36 +734,59 @@
     // 📊 RENDERIZAÇÃO: REPORTS
     // =========================================
     function renderReports(reports) {
-      document.getElementById('reportsLoading').style.display = 'none';
-      document.getElementById('reportsContent').style.display = 'block';
+      const loadingEl = document.getElementById('reportsLoading');
+      const contentEl = document.getElementById('reportsContent');
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (contentEl) contentEl.style.display = 'block';
 
-      // KPIs
-      document.getElementById('kpi-totalVendas').textContent = '$' + reports.kpis.totalVendas.toFixed(2);
-      document.getElementById('kpi-totalComissoes').textContent = '$' + reports.kpis.totalComissoes.toFixed(2);
-      document.getElementById('kpi-orcamentosAbertos').textContent = reports.kpis.orcamentosAbertos;
-      document.getElementById('kpi-vendedoresAtivos').textContent = reports.kpis.vendedoresAtivos;
-      document.getElementById('kpi-taxaConversao').textContent = reports.kpis.taxaConversao + '%';
+      const safeReports = reports || {}; // Proteção contra retornos parciais do backend
+      const kpis = safeReports.kpis || {};
 
-      // GRÁFICOS
+      const totalVendas = Number(kpis.totalVendas || 0);
+      const totalComissoes = Number(kpis.totalComissoes || 0);
+      const orcamentosAbertos = Number(kpis.orcamentosAbertos || 0);
+      const vendedoresAtivos = Number(kpis.vendedoresAtivos || 0);
+      const taxaConversao = Number(kpis.taxaConversao || 0);
+
+      document.getElementById('kpi-totalVendas').textContent = '$' + totalVendas.toFixed(2);
+      document.getElementById('kpi-totalComissoes').textContent = '$' + totalComissoes.toFixed(2);
+      document.getElementById('kpi-orcamentosAbertos').textContent = orcamentosAbertos.toString();
+      document.getElementById('kpi-vendedoresAtivos').textContent = vendedoresAtivos.toString();
+      document.getElementById('kpi-taxaConversao').textContent = taxaConversao.toFixed(1) + '%';
+
+      const chartVendasContainer = document.getElementById('chartVendasPorTipo');
+      const chartOrcContainer = document.getElementById('chartOrcPorStatus');
+
+      const grafVendas = Array.isArray(safeReports.grafVendasPorTipo) ? safeReports.grafVendasPorTipo : [];
+      const grafOrc = Array.isArray(safeReports.grafOrcPorStatus) ? safeReports.grafOrcPorStatus : [];
+
       google.charts.setOnLoadCallback(function () {
         try {
-          const dataVendas = google.visualization.arrayToDataTable(reports.grafVendasPorTipo);
-          const chartVendas = new google.visualization.PieChart(document.getElementById('chartVendasPorTipo'));
-          chartVendas.draw(dataVendas, {
-            title: '',
-            pieHole: 0.4,
-            colors: ['#2b5797', '#fbbc04', '#34a853'],
-            legend: { position: 'bottom' },
-          });
+          if (grafVendas.length > 1 && chartVendasContainer) {
+            const dataVendas = google.visualization.arrayToDataTable(grafVendas);
+            const chartVendas = new google.visualization.PieChart(chartVendasContainer);
+            chartVendas.draw(dataVendas, {
+              title: '',
+              pieHole: 0.4,
+              colors: ['#2b5797', '#fbbc04', '#34a853'],
+              legend: { position: 'bottom' },
+            });
+          } else if (chartVendasContainer) {
+            chartVendasContainer.innerHTML = '<p style="text-align:center;color:#6b7280;">Sem dados suficientes</p>';
+          }
 
-          const dataOrc = google.visualization.arrayToDataTable(reports.grafOrcPorStatus);
-          const chartOrc = new google.visualization.PieChart(document.getElementById('chartOrcPorStatus'));
-          chartOrc.draw(dataOrc, {
-            title: '',
-            pieHole: 0.4,
-            colors: ['#2b5797', '#fbbc04', '#ea4335'],
-            legend: { position: 'bottom' },
-          });
+          if (grafOrc.length > 1 && chartOrcContainer) {
+            const dataOrc = google.visualization.arrayToDataTable(grafOrc);
+            const chartOrc = new google.visualization.PieChart(chartOrcContainer);
+            chartOrc.draw(dataOrc, {
+              title: '',
+              pieHole: 0.4,
+              colors: ['#2b5797', '#fbbc04', '#ea4335'],
+              legend: { position: 'bottom' },
+            });
+          } else if (chartOrcContainer) {
+            chartOrcContainer.innerHTML = '<p style="text-align:center;color:#6b7280;">Sem dados suficientes</p>';
+          }
         } catch (err) {
           console.warn('⚠️ Erro ao desenhar gráficos:', err);
         }
@@ -779,17 +802,20 @@
       const tbody = document.getElementById('usersTableBody');
       tbody.innerHTML = '';
 
-      if (!users || users.length === 0) {
+      const listaUsuarios = Array.isArray(users) ? users : []; // Evita TypeError quando o backend não envia a lista
+
+      if (listaUsuarios.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum usuário cadastrado</div></td></tr>';
         return;
       }
 
-      users.forEach((user, index) => {
+      listaUsuarios.forEach((user, index) => {
         const statusClass = user.status === 'Ativo' ? 'status-ativo' : 'status-inativo';
         const metrics = user.metrics || {};
         const financial = metrics.financial || {};
         const conversion = metrics.conversion || {};
-        
+        const comissaoPadrao = Number(user.comissao || 0);
+
         // Linha principal
         const mainRow = `
           <tr class="main-row" onclick="toggleUserDetails(${index})">
@@ -799,7 +825,7 @@
             <td><span class="status-badge ${statusClass}">${user.status}</span></td>
             <td>$${financial.totalRevenue ? financial.totalRevenue.toFixed(2) : '0.00'}</td>
             <td>${conversion.rate ? conversion.rate.toFixed(1) : '0'}%</td>
-            <td>${(user.comissao * 100).toFixed(0)}%</td>
+            <td>${(comissaoPadrao * 100).toFixed(0)}%</td>
           </tr>
         `;
         
@@ -825,6 +851,7 @@
       const conv = m.conversion || {};
       const fin = m.financial || {};
       const der = m.derived || {};
+      const comissaoPadrao = Number(user.comissao || 0);
       
       return `
         <div class="detail-card">
@@ -845,7 +872,7 @@
             </div>
             <div class="detail-item">
               <div class="detail-label">Comissão Padrão</div>
-              <div class="detail-value">${(user.comissao * 100).toFixed(0)}%</div>
+              <div class="detail-value">${(comissaoPadrao * 100).toFixed(0)}%</div>
             </div>
           </div>
 
@@ -971,12 +998,14 @@
       const tbody = document.getElementById('budgetsTableBody');
       tbody.innerHTML = '';
 
-      if (!budgets || budgets.length === 0) {
+      const listaOrcamentos = Array.isArray(budgets) ? budgets : []; // Protege contra respostas sem dados de orçamento
+
+      if (listaOrcamentos.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum orçamento cadastrado</div></td></tr>';
         return;
       }
 
-      budgets.forEach((budget, index) => {
+      listaOrcamentos.forEach((budget, index) => {
         const indicatorClass = `indicator-${budget.corStatus || 'gray'}`;
         
         const mainRow = `
@@ -1130,12 +1159,14 @@
       const tbody = document.getElementById('salesTableBody');
       tbody.innerHTML = '';
 
-      if (!sales || sales.length === 0) {
+      const listaVendas = Array.isArray(sales) ? sales : []; // Evita quebra quando vendas não são carregadas
+
+      if (listaVendas.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhuma venda registrada</div></td></tr>';
         return;
       }
 
-      sales.forEach((sale, index) => {
+      listaVendas.forEach((sale, index) => {
         const mainRow = `
           <tr class="main-row" onclick="toggleSaleDetails(${index})">
             <td><span class="expand-icon" id="expand-sale-${index}">▶</span></td>
@@ -1191,6 +1222,10 @@
             <div class="detail-item">
               <div class="detail-label">Produto</div>
               <div class="detail-value">${sale.produto || '-'}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Criado Por</div>
+              <div class="detail-value">${sale.criadoPor || '-'}</div>
             </div>
           </div>
 
@@ -1250,20 +1285,22 @@
       const grid = document.getElementById('settingsGrid');
       grid.innerHTML = '';
 
-      if (!settings || Object.keys(settings).length === 0) {
+      const safeSettings = (settings && typeof settings === 'object') ? settings : {}; // Garante objeto iterável
+
+      if (Object.keys(safeSettings).length === 0) {
         grid.innerHTML = '<p style="color:#6b7280;">Nenhuma configuração disponível</p>';
         return;
       }
 
-      for (const key in settings) {
+      Object.entries(safeSettings).forEach(([key, value]) => {
         const item = `
           <div class="detail-item">
             <div class="detail-label">${key}</div>
-            <div class="detail-value">${settings[key]}</div>
+            <div class="detail-value">${value}</div>
           </div>
         `;
         grid.innerHTML += item;
-      }
+      });
     }
 
     // =========================================
