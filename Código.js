@@ -12,9 +12,9 @@
 // ===============================================================
 
 const NOME_ABA_USUARIOS = 'USUARIOS';
-const NOME_ABA_VENDAS = 'TABLEA DE VENDAS';
+const NOME_ABA_VENDAS = 'TABELA DE VENDAS'; // Corrigido para coincidir com o nome real da aba
 const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS'; // Primary source
-const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABLEA DE ORCAMENTOS'; // Fallback
+const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABELA DE ORÇAMENTOS'; // Fallback com grafia correta
 const NOME_ABA_CLIENT_LIST = NOME_ABA_VENDAS;
 const NOME_ABA_CONFIG = 'CONFIG';
 const NOME_ABA_AUDITORIA = 'AUDITORIA';
@@ -528,8 +528,9 @@ function calcularProbabilidadeConversao(budget) {
 function calcularMetricasVenda(sale, budgets) {
   try {
     // Tenta encontrar orçamento relacionado
-    const relatedBudget = budgets.find(b => 
-      b.cliente === sale.cliente && b.status === 'Fechado'
+    const statusFechamento = ['Fechado', 'Fechado (Venda)']; // Passa a aceitar ambos os status de fechamento
+    const relatedBudget = budgets.find(b =>
+      b.cliente === sale.cliente && statusFechamento.includes(b.status)
     );
     
     let tempoConversao = null;
@@ -572,7 +573,7 @@ function obterDadosAdmin() {
     const sheetUsuarios = ss.getSheetByName(NOME_ABA_USUARIOS);
     const sheetVendas = ss.getSheetByName(NOME_ABA_VENDAS);
     
-    // Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
+    // Prioriza ORÇAMENTOS, fallback para TABELA DE ORÇAMENTOS
     const sheetOrcamentos = ss.getSheetByName(NOME_ABA_ORCAMENTOS) || 
                             ss.getSheetByName(NOME_ABA_ORCAMENTOS_FALLBACK);
     
@@ -642,7 +643,8 @@ function obterDadosAdmin() {
             produto: safe(r[5]),
             valor: parseFloat(String(r[6]).replace(/[^0-9.-]+/g, '')) || 0,
             comissao: parseFloat(String(r[7]).replace(/[^0-9.-]+/g, '')) || 0,
-            vendedorId: safe(r[8])
+            vendedorId: safe(r[8]),
+            criadoPor: safe(r[9]) // Novo campo para manter o responsável pelo registro
           }))
       : [];
     
@@ -735,9 +737,18 @@ function registrarVenda(dados) {
   try {
     const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CLIENT_LIST);
 
+    if (!aba) {
+      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
+    }
+
     if (!dados || !dados.tipo || !dados.cliente || !dados.invoice) {
       throw new Error('Campos obrigatórios não preenchidos.');
     }
+
+    const sessao = obterSessaoAtiva();
+    const vendedorId = sessao?.id || '';
+    const criadoPor = sessao?.email || sessao?.nome || sessao?.id || 'Sistema';
+    // Garante que as colunas SELLER_ID e CREATED_BY sejam preenchidas conforme planilha real
 
     const proximaLinha = aba.getLastRow() + 1;
     let percentual = 0;
@@ -749,14 +760,20 @@ function registrarVenda(dados) {
     const valorVenda = Number(dados.valor) || 0;
     const valorComissao = valorVenda * percentual;
 
-    aba.getRange(proximaLinha, 1).setValue(new Date());
-    aba.getRange(proximaLinha, 2).setValue(dados.tipo);
-    aba.getRange(proximaLinha, 3).setValue(dados.cliente);
-    aba.getRange(proximaLinha, 4).setValue(dados.empresa || '');
-    aba.getRange(proximaLinha, 5).setValue(dados.invoice);
-    aba.getRange(proximaLinha, 6).setValue(dados.produto || '');
-    aba.getRange(proximaLinha, 7).setValue(valorVenda);
-    aba.getRange(proximaLinha, 8).setValue(valorComissao.toFixed(2));
+    const novaLinha = [
+      new Date(),
+      dados.tipo,
+      dados.cliente,
+      dados.empresa || '',
+      dados.invoice,
+      dados.produto || '',
+      valorVenda,
+      valorComissao,
+      vendedorId,
+      criadoPor
+    ];
+
+    aba.getRange(proximaLinha, 1, 1, novaLinha.length).setValues([novaLinha]);
 
     Logger.log(`✅ Venda registrada na linha ${proximaLinha}`);
     return '✅ Venda registrada com sucesso!';
@@ -1175,7 +1192,7 @@ function criarOuConfigurarOrcamentos_(ss) {
   sh.getRange('I2:I').setNumberFormat('$#,##0.00');
 
   const ruleStatus = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['Aberto', 'Proposta Enviada', 'Fechado', 'Perdido'], true)
+    .requireValueInList(['Aberto', 'Proposta Enviada', 'Fechado', 'Fechado (Venda)', 'Perdido'], true)
     .setAllowInvalid(false)
     .build();
   sh.getRange('J2:J').setDataValidation(ruleStatus);
