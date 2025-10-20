@@ -12,14 +12,49 @@
 // ===============================================================
 
 const NOME_ABA_USUARIOS = 'USUARIOS';
-const NOME_ABA_VENDAS = 'TABELA DE VENDAS'; // Corrigido para coincidir com o nome real da aba
-const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS'; // Primary source
-const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABELA DE ORÇAMENTOS'; // Fallback com grafia correta
-const NOME_ABA_CLIENT_LIST = NOME_ABA_VENDAS;
+const NOME_ABA_USUARIOS = 'USUARIOS';
+const NOME_ABA_VENDAS = 'TABLEA DE VENDAS'; // Nome real da aba
+const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS'; // Primária
+const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABLEA DE ORCAMENTOS'; // Fallback
+const NOME_ABA_CLIENT_LIST = 'Client_List';
 const NOME_ABA_CONFIG = 'CONFIG';
 const NOME_ABA_AUDITORIA = 'AUDITORIA';
 const NOME_ABA_DASHBOARD_DATA = 'DASHBOARD_DATA';
 const NOME_ABA_SISTEMA = 'SISTEMA';
+
+/**
+ * Busca uma aba pelo nome emitindo logs detalhados para facilitar a auditoria.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
+ * @param {string} nomeAba
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet|null}
+ */
+function obterAbaComLogs(ss, nomeAba) {
+  console.log(`🔍 Buscando aba: ${nomeAba}`);
+  const sheet = ss.getSheetByName(nomeAba);
+  if (!sheet) {
+    console.error(`❌ Aba não encontrada: ${nomeAba}`);
+    return null;
+  }
+  console.log(`✅ Aba carregada: ${sheet.getName()} (${sheet.getLastRow()} linhas)`);
+  return sheet;
+}
+
+/**
+ * Busca ou cria uma aba emitindo logs para cada etapa.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
+ * @param {string} nomeAba
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet}
+ */
+function obterOuCriarAbaComLogs(ss, nomeAba) {
+  const existente = obterAbaComLogs(ss, nomeAba);
+  if (existente) {
+    return existente;
+  }
+  console.warn(`⚠️ Criando aba ausente: ${nomeAba}`);
+  const criada = ss.insertSheet(nomeAba);
+  console.log(`🆕 Aba criada: ${criada.getName()} (${criada.getLastRow()} linhas)`);
+  return criada;
+}
 
 const CHAVE_SESSAO = 'sessaoUsuario';
 const DURACAO_SESSAO_MS = 60 * 60 * 1000; // 1 hora
@@ -126,7 +161,8 @@ function verificarPermissao(sessao, nivelRequerido) {
 // 👥 Módulo: Gestão de Usuários
 // ===============================================================
 function obterUsuariosModulo() {
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_USUARIOS);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
   if (!sh) {
     Logger.log("❌ Aba de usuários não encontrada: " + NOME_ABA_USUARIOS);
     return [];
@@ -570,15 +606,18 @@ function calcularMetricasVenda(sale, budgets) {
 function obterDadosAdmin() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetUsuarios = ss.getSheetByName(NOME_ABA_USUARIOS);
-    const sheetVendas = ss.getSheetByName(NOME_ABA_VENDAS);
-    
-    // Prioriza ORÇAMENTOS, fallback para TABELA DE ORÇAMENTOS
-    const sheetOrcamentos = ss.getSheetByName(NOME_ABA_ORCAMENTOS) || 
-                            ss.getSheetByName(NOME_ABA_ORCAMENTOS_FALLBACK);
-    
-    const sheetConfig = ss.getSheetByName(NOME_ABA_CONFIG);
-    
+const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
+const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
+
+// 🔄 Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
+const sheetOrcamentosPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
+const sheetOrcamentos = sheetOrcamentosPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
+if (!sheetOrcamentosPrimario && sheetOrcamentos) {
+  console.warn(`⚠️ Utilizando aba fallback: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
+}
+
+const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
+
     if (!sheetUsuarios) throw new Error("Aba 'USUARIOS' não encontrada.");
     
     const safe = v => (v === undefined || v === null ? '' : v);
@@ -735,7 +774,12 @@ function obterDadosAdmin() {
 
 function registrarVenda(dados) {
   try {
-    const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CLIENT_LIST);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
+
+    if (!aba) {
+      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
+    }
 
     if (!aba) {
       throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
@@ -785,7 +829,11 @@ function registrarVenda(dados) {
 
 function buscarVenda(invoice) {
   try {
-    const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CLIENT_LIST);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
+    if (!aba) {
+      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
+    }
     const dados = aba.getDataRange().getValues();
     const invoiceBusca = String(invoice).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -817,7 +865,11 @@ function atualizarVenda(dados) {
       throw new Error('Linha da venda não identificada.');
     }
 
-    const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CLIENT_LIST);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
+    if (!aba) {
+      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
+    }
     const linha = Number(dados.linha);
 
     let percentual = 0;
@@ -844,7 +896,11 @@ function atualizarVenda(dados) {
 
 function excluirVenda(linha) {
   try {
-    const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CLIENT_LIST);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
+    if (!aba) {
+      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
+    }
     const totalLinhas = aba.getLastRow();
     const linhaNum = Number(linha);
 
@@ -869,7 +925,8 @@ function obterUsuarios() {
     throw new Error('Permissão negada');
   }
 
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_USUARIOS);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
   if (!sh) throw new Error('A aba de usuários não foi encontrada.');
 
   const dados = sh.getDataRange().getValues();
@@ -901,7 +958,11 @@ function obterUsuarioPorId(id) {
     throw new Error('Permissão negada');
   }
 
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_USUARIOS);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
+  if (!sh) {
+    throw new Error('A aba de usuários não foi encontrada.');
+  }
   const dados = sh.getDataRange().getValues();
 
   for (let i = 1; i < dados.length; i++) {
@@ -929,7 +990,8 @@ function salvarUsuario(u) {
     throw new Error('Permissão negada');
   }
 
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_USUARIOS);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
   if (!sh) throw new Error('A aba de usuários não foi encontrada.');
 
   const dados = sh.getDataRange().getValues();
@@ -969,7 +1031,11 @@ function inativarUsuario(id) {
     throw new Error('Permissão negada');
   }
 
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_USUARIOS);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
+  if (!sh) {
+    throw new Error('A aba de usuários não foi encontrada.');
+  }
   const dados = sh.getDataRange().getValues();
 
   for (let i = 1; i < dados.length; i++) {
@@ -990,7 +1056,11 @@ function excluirUsuario(id) {
     throw new Error('Permissão negada');
   }
 
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_USUARIOS);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
+  if (!sh) {
+    throw new Error('A aba de usuários não foi encontrada.');
+  }
   const dados = sh.getDataRange().getValues();
 
   for (let i = 1; i < dados.length; i++) {
@@ -1062,9 +1132,12 @@ function obterDadosDashboard() {
     if (!usuario) return { erro: true, mensagem: 'Sessão expirada' };
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const shV = ss.getSheetByName(NOME_ABA_CLIENT_LIST);
-    const shO = ss.getSheetByName(NOME_ABA_ORCAMENTOS) || 
-                ss.getSheetByName(NOME_ABA_ORCAMENTOS_FALLBACK);
+    const shV = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
+    const shOPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
+    const shO = shOPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
+    if (!shOPrimario && shO) {
+      console.warn(`ℹ️ Utilizando aba fallback: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
+    }
 
     const vendas = shV ? shV.getDataRange().getValues() : [];
     const orc = shO ? shO.getDataRange().getValues() : [];
@@ -1155,7 +1228,7 @@ function setupInicial() {
 }
 
 function criarOuConfigurarVendas_(ss) {
-  let sh = ss.getSheetByName(NOME_ABA_VENDAS) || ss.insertSheet(NOME_ABA_VENDAS);
+  const sh = obterOuCriarAbaComLogs(ss, NOME_ABA_VENDAS);
 
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, 10).setValues([[
@@ -1177,7 +1250,7 @@ function criarOuConfigurarVendas_(ss) {
 }
 
 function criarOuConfigurarOrcamentos_(ss) {
-  let sh = ss.getSheetByName(NOME_ABA_ORCAMENTOS) || ss.insertSheet(NOME_ABA_ORCAMENTOS);
+  const sh = obterOuCriarAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
 
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, 18).setValues([[
@@ -1201,7 +1274,7 @@ function criarOuConfigurarOrcamentos_(ss) {
 }
 
 function criarOuConfigurarUsuarios_(ss) {
-  let sh = ss.getSheetByName(NOME_ABA_USUARIOS) || ss.insertSheet(NOME_ABA_USUARIOS);
+  const sh = obterOuCriarAbaComLogs(ss, NOME_ABA_USUARIOS);
 
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, 8).setValues([[
@@ -1227,7 +1300,7 @@ function criarOuConfigurarUsuarios_(ss) {
 }
 
 function criarOuConfigurarConfig_(ss) {
-  let sh = ss.getSheetByName(NOME_ABA_CONFIG) || ss.insertSheet(NOME_ABA_CONFIG);
+  const sh = obterOuCriarAbaComLogs(ss, NOME_ABA_CONFIG);
 
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, 2).setValues([['CHAVE', 'VALOR']]);
@@ -1240,7 +1313,7 @@ function criarOuConfigurarConfig_(ss) {
 }
 
 function criarOuConfigurarAuditoria_(ss) {
-  let sh = ss.getSheetByName(NOME_ABA_AUDITORIA) || ss.insertSheet(NOME_ABA_AUDITORIA);
+  const sh = obterOuCriarAbaComLogs(ss, NOME_ABA_AUDITORIA);
 
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, 5).setValues([[
@@ -1272,7 +1345,7 @@ function protegerCabecalho_(sheet, numLinhas) {
 function getConfigValue_(chave, valorPadrao) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sh = ss.getSheetByName(NOME_ABA_CONFIG);
+    const sh = obterAbaComLogs(ss, NOME_ABA_CONFIG);
 
     if (!sh) return valorPadrao;
 
@@ -1290,7 +1363,7 @@ function registrarAuditoria_(acao, detalhes) {
   try {
     const usuario = obterSessaoAtiva();
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sh = ss.getSheetByName(NOME_ABA_AUDITORIA);
+    const sh = obterAbaComLogs(ss, NOME_ABA_AUDITORIA);
 
     if (!sh) return;
 
