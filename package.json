@@ -1,0 +1,23 @@
+{
+  "name": "fdesignsolutions",
+  "version": "1.0.0",
+  "description": "**Autor:** Vinicius Sabino  \r **Localização:** Newark, NJ  \r **Data:** Outubro 2025  \r **Versão:** 2.0.0 (Final Build)",
+  "main": "Código.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinisabinopires/FDesignSolutions.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vinisabinopires/FDesignSolutions/issues"
+  },
+  "homepage": "https://github.com/vinisabinopires/FDesignSolutions#readme",
+  "dependencies": {
+    "openai": "^6.6.0"
+  }
+}
