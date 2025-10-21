@@ -325,7 +325,7 @@ function abrirLoginSistema() {
  */
 function formatarData(valor) {
   if (!valor) return '-';
-  
+
   try {
     const tz = Session.getScriptTimeZone();
 
@@ -380,6 +380,24 @@ function formatarData(valor) {
   }
 }
 
+function normalizarValorNumerico(valor) {
+  if (valor === null || valor === undefined) {
+    return 0;
+  }
+
+  if (typeof valor === 'number') {
+    return isNaN(valor) ? 0 : valor;
+  }
+
+  const textoNormalizado = String(valor)
+    .replace(/[^0-9,.-]+/g, '')
+    .replace(/,(?=\d{3}(?![\d,]))/g, '')
+    .replace(',', '.');
+
+  const numero = parseFloat(textoNormalizado);
+  return isNaN(numero) ? 0 : numero;
+}
+
 /**
  * Calcula dias desde uma data
  */
@@ -417,13 +435,28 @@ function obterCorPorDias(dias) {
 // 📊 ANALYTICS ENGINE - MÉTRICAS DE USUÁRIO
 // ===============================================================
 
+function criarMetricasUsuarioVazias() {
+  return {
+    communication: { messages: 0, calls: 0, total: 0 },
+    effectiveness: { respPos: 0, respNeg: 0, prr: 0 },
+    conversion: { totalBudgets: 0, converted: 0, rate: 0 },
+    financial: {
+      avgSaleValue: 0,
+      totalRevenue: 0,
+      totalCommission: 0,
+      profitabilityPerHour: 0
+    },
+    derived: { oei: 0, ce: 0, hp: 0, prr: 0, nep: 0 }
+  };
+}
+
 /**
  * Calcula todas as métricas analíticas de um usuário
  */
 function calcularMetricasUsuario(userId, budgets, sales) {
   try {
     // Filtra dados do usuário
-    const userBudgets = budgets.filter(b => 
+    const userBudgets = budgets.filter(b =>
       b.criadoPor === userId || b.vendedorId === userId
     );
     
@@ -522,7 +555,7 @@ function calcularMetricasUsuario(userId, budgets, sales) {
     };
   } catch (err) {
     Logger.log('❌ Erro ao calcular métricas de usuário: ' + err);
-    return null;
+    return criarMetricasUsuarioVazias();
   }
 }
 
@@ -551,7 +584,7 @@ function calcularMetricasOrcamento(budget) {
  */
 function calcularProbabilidadeConversao(budget) {
   let score = 50; // Base
-  
+
   // Ajusta por comunicação
   const mensagens = parseInt(budget.mensagens) || 0;
   const ligacoes = parseInt(budget.ligacoes) || 0;
@@ -571,6 +604,28 @@ function calcularProbabilidadeConversao(budget) {
   if (budget.valor > 5000) score += 10;
   
   return Math.max(0, Math.min(100, score));
+}
+
+function obterPercentualComissaoPorTipo(tipo) {
+  if (!tipo) {
+    return null;
+  }
+
+  const chave = String(tipo).trim().toUpperCase();
+
+  if (chave === 'NEW' || chave === 'NOVA' || chave === 'NOVO') {
+    return 0.10;
+  }
+
+  if (chave === 'WALK-IN' || chave === 'WALKIN') {
+    return 0.05;
+  }
+
+  if (chave === 'RECURRING' || chave === 'RECORRENTE' || chave === 'OLD') {
+    return 0.05;
+  }
+
+  return null;
 }
 
 /**
@@ -623,9 +678,11 @@ function obterDadosAdmin() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
-    const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
+    if (!sheetUsuarios) {
+      throw new Error("Aba 'USUARIOS' não encontrada.");
+    }
 
-    // Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
+    const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
     const sheetOrcamentosPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
     const sheetOrcamentos = sheetOrcamentosPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
     if (!sheetOrcamentosPrimario && sheetOrcamentos) {
@@ -634,150 +691,229 @@ function obterDadosAdmin() {
 
     const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
 
-    if (!sheetUsuarios) throw new Error("Aba 'USUARIOS' não encontrada.");
-    
-    const safe = v => (v === undefined || v === null ? '' : v);
-    
-    // === USERS (Base) ===
-    const usersBase = sheetUsuarios.getLastRow() > 1
+    const safeText = valor => {
+      if (valor === undefined || valor === null) {
+        return '';
+      }
+      return String(valor).trim();
+    };
+
+    const inteiro = valor => {
+      const numero = normalizarValorNumerico(valor);
+      return Number.isFinite(numero) ? Math.round(numero) : 0;
+    };
+
+    const usuariosBase = sheetUsuarios.getLastRow() > 1
       ? sheetUsuarios.getRange(2, 1, sheetUsuarios.getLastRow() - 1, 8).getValues()
-          .filter(r => r[0])
-          .map(r => ({
-            id: safe(r[0]),
-            nome: safe(r[1]),
-            tipo: safe(r[2]),
-            email: safe(r[3]),
-            telefone: safe(r[4]),
-            pin: safe(r[5]),
-            comissao: parseFloat(r[6]) || 0,
-            status: safe(r[7]) || "Inativo"
-          }))
+          .filter(linha => linha[0])
+          .map(linha => {
+            const email = safeText(linha[3]);
+            return {
+              id: safeText(linha[0]),
+              nome: safeText(linha[1]),
+              tipo: safeText(linha[2]),
+              email: email,
+              telefone: safeText(linha[4]),
+              pin: safeText(linha[5]),
+              comissao: normalizarValorNumerico(linha[6]),
+              status: safeText(linha[7]) || 'Inativo'
+            };
+          })
       : [];
-    
-    // === BUDGETS (Enhanced) ===
-    const budgets = sheetOrcamentos && sheetOrcamentos.getLastRow() > 1
+
+    const usuariosPorId = {};
+    const usuariosPorEmail = {};
+    usuariosBase.forEach(usuario => {
+      const id = safeText(usuario.id);
+      if (id) {
+        usuariosPorId[id] = usuario;
+      }
+
+      const email = safeText(usuario.email).toLowerCase();
+      if (email) {
+        usuariosPorEmail[email] = usuario;
+      }
+    });
+
+    const resolverNomeUsuario = referencia => {
+      const chave = safeText(referencia);
+      if (!chave) {
+        return '';
+      }
+
+      if (usuariosPorId[chave]) {
+        return usuariosPorId[chave].nome;
+      }
+
+      const porEmail = usuariosPorEmail[chave.toLowerCase()];
+      if (porEmail) {
+        return porEmail.nome;
+      }
+
+      return chave;
+    };
+
+    const budgetsBase = sheetOrcamentos && sheetOrcamentos.getLastRow() > 1
       ? sheetOrcamentos
           .getRange(2, 1, sheetOrcamentos.getLastRow() - 1, 18)
           .getValues()
-          .filter(r => r[0])
-          .map(r => ({
-            id: safe(r[0]),
-            dataCriacao: formatarData(r[1]),
-            origem: safe(r[2]),
-            criadoPor: safe(r[3]),
-            cliente: safe(r[4]),
-            email: safe(r[5]),
-            telefone: safe(r[6]),
-            descricao: safe(r[7]),
-            valor: parseFloat(String(r[8]).replace(/[^0-9.-]+/g, '')) || 0,
-            status: safe(r[9]),
-            dataEnvio: formatarData(r[10]),
-            ultimoContato: formatarData(r[11]),
-            mensagens: safe(r[12]),
-            ligacoes: safe(r[13]),
-            respPos: safe(r[14]),
-            respNeg: safe(r[15]),
-            motivoPerda: safe(r[16]),
-            obs: safe(r[17]),
-            vendedorId: safe(r[3]) // Assume criadoPor como vendedor
-          }))
+          .filter(linha => linha[0])
+          .map(linha => {
+            const vendedorId = safeText(linha[3]);
+            return {
+              id: safeText(linha[0]),
+              dataCriacao: formatarData(linha[1]),
+              dataCriacaoISO: linha[1] instanceof Date ? linha[1].toISOString() : '',
+              origem: safeText(linha[2]),
+              tipo: safeText(linha[2]),
+              criadoPor: vendedorId,
+              cliente: safeText(linha[4]),
+              email: safeText(linha[5]),
+              telefone: safeText(linha[6]),
+              descricao: safeText(linha[7]),
+              valor: parseFloat(normalizarValorNumerico(linha[8]).toFixed(2)),
+              status: safeText(linha[9]),
+              dataEnvio: formatarData(linha[10]),
+              dataEnvioISO: linha[10] instanceof Date ? linha[10].toISOString() : '',
+              ultimoContato: formatarData(linha[11]),
+              ultimoContatoISO: linha[11] instanceof Date ? linha[11].toISOString() : '',
+              mensagens: inteiro(linha[12]),
+              ligacoes: inteiro(linha[13]),
+              respPos: inteiro(linha[14]),
+              respNeg: inteiro(linha[15]),
+              motivoPerda: safeText(linha[16]),
+              obs: safeText(linha[17]),
+              vendedorId: vendedorId
+            };
+          })
       : [];
-    
-    // === SALES (Enhanced) ===
-    const sales = sheetVendas && sheetVendas.getLastRow() > 1
+
+    const budgetsNormalizados = budgetsBase.map(orçamento => ({
+      ...orçamento,
+      responsavelNome: resolverNomeUsuario(orçamento.vendedorId || orçamento.criadoPor) || '-'
+    }));
+
+    const salesBase = sheetVendas && sheetVendas.getLastRow() > 1
       ? sheetVendas
           .getRange(2, 1, sheetVendas.getLastRow() - 1, 10)
           .getValues()
-          .filter(r => r[0])
-          .map(r => ({
-            data: formatarData(r[0]),
-            tipo: safe(r[1]),
-            cliente: safe(r[2]),
-            empresa: safe(r[3]),
-            invoice: safe(r[4]),
-            produto: safe(r[5]),
-            valor: parseFloat(String(r[6]).replace(/[^0-9.-]+/g, '')) || 0,
-            comissao: parseFloat(String(r[7]).replace(/[^0-9.-]+/g, '')) || 0,
-            vendedorId: safe(r[8]),
-            criadoPor: safe(r[9]) // Novo campo para manter o responsável pelo registro
-          }))
+          .filter(linha => linha[0])
+          .map(linha => {
+            const tipo = safeText(linha[1]);
+            const valorBruto = parseFloat(normalizarValorNumerico(linha[6]).toFixed(2));
+            const comissaoInformada = normalizarValorNumerico(linha[7]);
+            const vendedorId = safeText(linha[8]);
+            const criadoPor = safeText(linha[9]);
+            const regraPercentual = obterPercentualComissaoPorTipo(tipo);
+
+            let comissaoCalculada = comissaoInformada;
+            if (!comissaoCalculada && regraPercentual !== null) {
+              comissaoCalculada = valorBruto * regraPercentual;
+            }
+
+            const comissaoFinal = parseFloat((comissaoCalculada || 0).toFixed(2));
+            const percentualDecimal = valorBruto > 0
+              ? comissaoFinal / valorBruto
+              : regraPercentual || 0;
+            const percentualPercent = parseFloat((percentualDecimal * 100).toFixed(2));
+            const vendedorNome = resolverNomeUsuario(vendedorId || criadoPor);
+
+            return {
+              data: formatarData(linha[0]),
+              dataISO: linha[0] instanceof Date ? linha[0].toISOString() : '',
+              tipo: tipo,
+              cliente: safeText(linha[2]),
+              empresa: safeText(linha[3]),
+              invoice: safeText(linha[4]),
+              produto: safeText(linha[5]),
+              valor: valorBruto,
+              comissao: comissaoFinal,
+              comissaoPercentual: percentualPercent,
+              vendedorId: vendedorId,
+              vendedorNome: vendedorNome || vendedorId || criadoPor || '-',
+              criadoPor: criadoPor
+            };
+          })
       : [];
-    
-    // === CALCULA MÉTRICAS ANALÍTICAS PARA CADA USUÁRIO ===
-    const users = usersBase.map(user => {
-      const metrics = calcularMetricasUsuario(user.id, budgets, sales);
+
+    const users = usuariosBase.map(usuario => {
+      const metricas = calcularMetricasUsuario(usuario.id, budgetsNormalizados, salesBase);
       return {
-        ...user,
-        metrics: metrics
+        ...usuario,
+        metrics: metricas || criarMetricasUsuarioVazias()
       };
     });
-    
-    // === ENRIQUECE BUDGETS COM MÉTRICAS ===
-    const budgetsEnhanced = budgets.map(b => calcularMetricasOrcamento(b));
-    
-    // === ENRIQUECE SALES COM MÉTRICAS ===
-    const salesEnhanced = sales.map(s => calcularMetricasVenda(s, budgets));
-    
-    // === REPORTS (KPIs Globais) ===
-    const totalVendas = sales.reduce((a, s) => a + s.valor, 0);
-    const totalComissoes = sales.reduce((a, s) => a + s.comissao, 0);
-    const orcamentosAbertos = budgets.filter(o => 
-      o.status === "Aberto" || o.status === "Proposta Enviada"
-    ).length;
-    const vendedoresAtivos = users.filter(u => u.status === "Ativo").length;
-    const taxaConversao = budgets.length > 0
-      ? ((sales.length / budgets.length) * 100).toFixed(1)
-      : "0";
-    
+
+    const budgetsEnhanced = budgetsNormalizados.map(item => calcularMetricasOrcamento(item));
+    const salesEnhanced = salesBase.map(item => calcularMetricasVenda(item, budgetsEnhanced))
+      .map((item, indice) => ({
+        ...item,
+        vendedorNome: salesBase[indice].vendedorNome,
+        comissaoPercentual: salesBase[indice].comissaoPercentual
+      }));
+
+    const totalVendas = salesEnhanced.reduce((acumulado, venda) => acumulado + (venda.valor || 0), 0);
+    const totalComissoes = salesEnhanced.reduce((acumulado, venda) => acumulado + (venda.comissao || 0), 0);
+    const orcamentosAbertos = budgetsEnhanced.filter(orçamento => {
+      const status = safeText(orçamento.status).toLowerCase();
+      return status === 'aberto' || status === 'proposta enviada';
+    }).length;
+    const vendedoresAtivos = users.filter(usuario => safeText(usuario.status).toLowerCase() === 'ativo').length;
+    const taxaConversao = budgetsEnhanced.length > 0
+      ? parseFloat(((salesEnhanced.length / budgetsEnhanced.length) * 100).toFixed(1))
+      : 0;
+
+    const vendasPorTipo = salesEnhanced.reduce((acumulado, venda) => {
+      const tipo = safeText(venda.tipo) || 'Sem Tipo';
+      acumulado[tipo] = (acumulado[tipo] || 0) + (venda.valor || 0);
+      return acumulado;
+    }, {});
+
+    const orcamentosPorStatus = budgetsEnhanced.reduce((acumulado, orçamento) => {
+      const status = safeText(orçamento.status) || 'Sem Status';
+      acumulado[status] = (acumulado[status] || 0) + 1;
+      return acumulado;
+    }, {});
+
+    const graficoVendasPorTipo = Object.keys(vendasPorTipo).length > 0
+      ? [['Tipo', 'Valor']].concat(Object.entries(vendasPorTipo))
+      : [['Tipo', 'Valor'], ['Sem Dados', 0]];
+
+    const graficoOrcamentosPorStatus = Object.keys(orcamentosPorStatus).length > 0
+      ? [['Status', 'Quantidade']].concat(Object.entries(orcamentosPorStatus))
+      : [['Status', 'Quantidade'], ['Sem Dados', 0]];
+
     const reports = {
       kpis: {
         totalVendas: parseFloat(totalVendas.toFixed(2)),
         totalComissoes: parseFloat(totalComissoes.toFixed(2)),
-        orcamentosAbertos,
-        vendedoresAtivos,
-        taxaConversao: parseFloat(taxaConversao)
+        orcamentosAbertos: orcamentosAbertos,
+        vendedoresAtivos: vendedoresAtivos,
+        taxaConversao: taxaConversao
       },
-      grafVendasPorTipo: [["Tipo", "Valor"]].concat(
-        Object.entries(
-          sales.reduce((acc, v) => {
-            acc[v.tipo] = (acc[v.tipo] || 0) + v.valor;
-            return acc;
-          }, {})
-        )
-      ),
-      grafOrcPorStatus: [["Status", "Quantidade"]].concat(
-        Object.entries(
-          budgets.reduce((acc, o) => {
-            acc[o.status] = (acc[o.status] || 0) + 1;
-            return acc;
-          }, {})
-        )
-      )
+      grafVendasPorTipo: graficoVendasPorTipo,
+      grafOrcPorStatus: graficoOrcamentosPorStatus
     };
-    
-    // === SETTINGS ===
+
     const settings = sheetConfig
       ? Object.fromEntries(
           sheetConfig.getDataRange().getValues()
-            .filter(r => r[0])
-            .map(r => [r[0], r[1]])
+            .filter(linha => linha[0])
+            .map(linha => [linha[0], linha[1]])
         )
       : {};
-    
-    const result = {
+
+    Logger.log(`✅ Dados administrativos carregados com sucesso: ${users.length} usuários, ${budgetsEnhanced.length} orçamentos, ${salesEnhanced.length} vendas.`);
+
+    return {
       success: true,
-      data: {
-        users: users,
-        budgets: budgetsEnhanced,
-        sales: salesEnhanced,
-        reports: reports,
-        settings: settings
-      }
+      users: users,
+      budgets: budgetsEnhanced,
+      sales: salesEnhanced,
+      reports: reports,
+      settings: settings
     };
-    
-    Logger.log('✅ Dados administrativos carregados com sucesso (v2.0)');
-    return result;
-    
+
   } catch (e) {
     Logger.log(`❌ Erro em obterDadosAdmin: ${e} | Stack: ${e && e.stack}`);
     return {
@@ -790,40 +926,73 @@ function obterDadosAdmin() {
 
 function filtrarMetricasPorPeriodo(userId, start, end) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(NOME_ABA_VENDAS);
-  if (!sheet) throw new Error("Aba de vendas não encontrada.");
+  const sheet = obterAbaComLogs(ss, NOME_ABA_VENDAS);
+  if (!sheet) {
+    throw new Error(`Aba de vendas não encontrada (${NOME_ABA_VENDAS}).`);
+  }
 
-  Logger.log(`📅 Filtrando métricas de ${userId} de ${start} até ${end}`);
+  const normalizarDataFiltro = valor => {
+    if (!valor) {
+      return null;
+    }
+    const data = new Date(valor);
+    if (isNaN(data.getTime())) {
+      return null;
+    }
+    return data;
+  };
 
-  const dataInicio = new Date(start);
-  const dataFim = new Date(end);
-  const dados = sheet.getDataRange().getValues();
+  const dataInicio = normalizarDataFiltro(start);
+  const dataFim = normalizarDataFiltro(end);
+  if (dataInicio) {
+    dataInicio.setHours(0, 0, 0, 0);
+  }
+  if (dataFim) {
+    dataFim.setHours(23, 59, 59, 999);
+  }
 
-  // Ignora cabeçalho e aplica filtro por vendedor e intervalo de datas
-  const filtrado = dados.filter((r, i) => {
-    if (i === 0) return false;
-    const dataVenda = new Date(r[0]);
-    const vendedorId = String(r[8] || '');
-    return (
-      vendedorId === userId &&
-      dataVenda >= dataInicio &&
-      dataVenda <= dataFim
-    );
-  });
+  Logger.log(`📅 Filtrando métricas de ${userId} entre ${start} e ${end}`);
 
-  // Retorna dados em formato JSON para o frontend
-  return filtrado.map(r => ({
-    data: r[0],
-    tipo: r[1],
-    cliente: r[2],
-    empresa: r[3],
-    invoice: r[4],
-    produto: r[5],
-    valor: parseFloat(r[6]) || 0,
-    comissao: parseFloat(r[7]) || 0,
-    vendedorId: r[8],
-    criadoPor: r[9]
-  }));
+  const valores = sheet.getDataRange().getValues();
+  const resultados = [];
+
+  for (let i = 1; i < valores.length; i++) {
+    const linha = valores[i];
+    const vendedorId = String(linha[8] || '').trim();
+    if (userId && vendedorId !== userId) {
+      continue;
+    }
+
+    const dataBruta = linha[0];
+    const dataVenda = dataBruta instanceof Date ? new Date(dataBruta) : new Date(dataBruta);
+    if (isNaN(dataVenda.getTime())) {
+      continue;
+    }
+
+    if (dataInicio && dataVenda < dataInicio) {
+      continue;
+    }
+    if (dataFim && dataVenda > dataFim) {
+      continue;
+    }
+
+    resultados.push({
+      data: formatarData(dataBruta),
+      dataISO: dataVenda.toISOString(),
+      tipo: String(linha[1] || ''),
+      cliente: String(linha[2] || ''),
+      empresa: String(linha[3] || ''),
+      invoice: String(linha[4] || ''),
+      produto: String(linha[5] || ''),
+      valor: parseFloat(normalizarValorNumerico(linha[6]).toFixed(2)),
+      comissao: parseFloat(normalizarValorNumerico(linha[7]).toFixed(2)),
+      vendedorId: vendedorId,
+      criadoPor: String(linha[9] || '')
+    });
+  }
+
+  Logger.log(`📊 ${resultados.length} registros filtrados para ${userId}`);
+  return resultados;
 }
 
 // ===============================================================
@@ -834,10 +1003,6 @@ function registrarVenda(dados) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const aba = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
-
-    if (!aba) {
-      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
-    }
 
     if (!aba) {
       throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
