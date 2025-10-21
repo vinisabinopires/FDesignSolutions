@@ -634,19 +634,6 @@ function obterDadosAdmin() {
 
     const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
 
-const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
-const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
-
-// 🔄 Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
-const sheetOrcamentosPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
-const sheetOrcamentos = sheetOrcamentosPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
-if (!sheetOrcamentosPrimario && sheetOrcamentos) {
-  console.warn(`⚠️ Utilizando aba fallback: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
-}
-
-const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
-
-
     if (!sheetUsuarios) throw new Error("Aba 'USUARIOS' não encontrada.");
     
     const safe = v => (v === undefined || v === null ? '' : v);
@@ -799,6 +786,44 @@ const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
       details: String(e)
     };
   }
+}
+
+function filtrarMetricasPorPeriodo(userId, start, end) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NOME_ABA_VENDAS);
+  if (!sheet) throw new Error("Aba de vendas não encontrada.");
+
+  Logger.log(`📅 Filtrando métricas de ${userId} de ${start} até ${end}`);
+
+  const dataInicio = new Date(start);
+  const dataFim = new Date(end);
+  const dados = sheet.getDataRange().getValues();
+
+  // Ignora cabeçalho e aplica filtro por vendedor e intervalo de datas
+  const filtrado = dados.filter((r, i) => {
+    if (i === 0) return false;
+    const dataVenda = new Date(r[0]);
+    const vendedorId = String(r[8] || '');
+    return (
+      vendedorId === userId &&
+      dataVenda >= dataInicio &&
+      dataVenda <= dataFim
+    );
+  });
+
+  // Retorna dados em formato JSON para o frontend
+  return filtrado.map(r => ({
+    data: r[0],
+    tipo: r[1],
+    cliente: r[2],
+    empresa: r[3],
+    invoice: r[4],
+    produto: r[5],
+    valor: parseFloat(r[6]) || 0,
+    comissao: parseFloat(r[7]) || 0,
+    vendedorId: r[8],
+    criadoPor: r[9]
+  }));
 }
 
 // ===============================================================

@@ -1,0 +1,358 @@
+diff --git a/Código.js b/Código.js
+index f9979943f19302d34bd555f6890939a8c9848cf5..333626337d9a3e6862ee0c93a1f26ba20684eee8 100644
+--- a/Código.js
++++ b/Código.js
+@@ -1,42 +1,42 @@
+ 
+ diff --git a/Código.js b/Código.js
+index f9979943f19302d34bd555f6890939a8c9848cf5..333626337d9a3e6862ee0c93a1f26ba20684eee8 100644
+--- a/Código.js
++++ b/Código.js
+@@ -1,42 +1,42 @@
+ // ===============================================================
+ // SISTEMA DE REGISTRO E GERENCIAMENTO DE VENDAS
+ // F/Design Solutions – Newark, NJ
+ //
+ // ARQUIVO PRINCIPAL: Backend completo e unificado
+ // VERSÃO 2.0 - ANALYTICAL ARCHITECTURE
+ // Contém: Autenticação, Sessão, CRUD, Analytics Engine
+ // ===============================================================
+ 
+ // ===============================================================
+ // CONSTANTES GLOBAIS (Centralizadas)
+ // ===============================================================
+ 
+ const NOME_ABA_USUARIOS = 'USUARIOS';
+-const NOME_ABA_VENDAS = 'TABLEA DE VENDAS';
++const NOME_ABA_VENDAS = 'TABELA DE VENDAS'; // Corrigido para coincidir com o nome real da aba
+ const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS'; // Primary source
+-const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABLEA DE ORCAMENTOS'; // Fallback
++const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABELA DE ORÇAMENTOS'; // Fallback com grafia correta
+ const NOME_ABA_CLIENT_LIST = NOME_ABA_VENDAS;
+ const NOME_ABA_CONFIG = 'CONFIG';
+ const NOME_ABA_AUDITORIA = 'AUDITORIA';
+ const NOME_ABA_DASHBOARD_DATA = 'DASHBOARD_DATA';
+ const NOME_ABA_SISTEMA = 'SISTEMA';
+ 
+ const CHAVE_SESSAO = 'sessaoUsuario';
+ const DURACAO_SESSAO_MS = 60 * 60 * 1000; // 1 hora
+ const ADMIN_EMAILS = ['sabinopiresvinicius@gmail.com'];
+ 
+ // ===============================================================
+ // MENU + INICIALIZAÇÃO AUTOMÁTICA
+ // ===============================================================
+ function onOpen() {
+   const ui = SpreadsheetApp.getUi();
+   ui.createMenu('📘 F/Design Solutions')
+     .addItem('🔐 Abrir Sistema', 'iniciarSistemaFDesign')
+     .addToUi();
+ 
+   try {
+     iniciarSistemaFDesign();
+   } catch (e) {
+     Logger.log('⚠️ Falha ao iniciar automaticamente: ' + e);
+   }
+ }
+@@ -506,95 +506,96 @@ function calcularProbabilidadeConversao(budget) {
+   const ligacoes = parseInt(budget.ligacoes) || 0;
+   if (mensagens + ligacoes > 5) score += 15;
+   else if (mensagens + ligacoes > 2) score += 10;
+   
+   // Ajusta por respostas positivas
+   const respPos = parseInt(budget.respPos) || 0;
+   if (respPos > 0) score += 20;
+   
+   // Ajusta por tempo decorrido
+   const dias = calcularDiasDesde(budget.dataCriacao);
+   if (dias > 30) score -= 20;
+   else if (dias > 15) score -= 10;
+   
+   // Ajusta por valor
+   if (budget.valor > 5000) score += 10;
+   
+   return Math.max(0, Math.min(100, score));
+ }
+ 
+ /**
+  * Calcula métricas detalhadas de uma venda
+  */
+ function calcularMetricasVenda(sale, budgets) {
+   try {
+     // Tenta encontrar orçamento relacionado
+-    const relatedBudget = budgets.find(b => 
+-      b.cliente === sale.cliente && b.status === 'Fechado'
++    const statusFechamento = ['Fechado', 'Fechado (Venda)']; // Passa a aceitar ambos os status de fechamento
++    const relatedBudget = budgets.find(b =>
++      b.cliente === sale.cliente && statusFechamento.includes(b.status)
+     );
+     
+     let tempoConversao = null;
+     let tentativasContato = 0;
+     
+     if (relatedBudget) {
+       // Calcula tempo de conversão
+       const dataOrc = relatedBudget.dataCriacao;
+       const dataVenda = sale.data;
+       // Implementar cálculo de diferença de dias
+       
+       tentativasContato = (parseInt(relatedBudget.mensagens) || 0) + 
+                           (parseInt(relatedBudget.ligacoes) || 0);
+     }
+     
+     const valorPorHora = tentativasContato > 0 
+       ? (sale.valor / tentativasContato).toFixed(2)
+       : 0;
+     
+     return {
+       ...sale,
+       relatedBudgetId: relatedBudget ? relatedBudget.id : null,
+       tempoConversao: tempoConversao,
+       tentativasContato: tentativasContato,
+       valorPorHora: parseFloat(valorPorHora)
+     };
+   } catch (err) {
+     Logger.log('❌ Erro ao calcular métricas de venda: ' + err);
+     return sale;
+   }
+ }
+ 
+ // ===============================================================
+ // 📊 PAINEL ADMINISTRATIVO — DADOS ANALÍTICOS (V2.0)
+ // ===============================================================
+ 
+ function obterDadosAdmin() {
+   try {
+     const ss = SpreadsheetApp.getActiveSpreadsheet();
+     const sheetUsuarios = ss.getSheetByName(NOME_ABA_USUARIOS);
+     const sheetVendas = ss.getSheetByName(NOME_ABA_VENDAS);
+     
+-    // Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
++    // Prioriza ORÇAMENTOS, fallback para TABELA DE ORÇAMENTOS
+     const sheetOrcamentos = ss.getSheetByName(NOME_ABA_ORCAMENTOS) || 
+                             ss.getSheetByName(NOME_ABA_ORCAMENTOS_FALLBACK);
+     
+     const sheetConfig = ss.getSheetByName(NOME_ABA_CONFIG);
+     
+     if (!sheetUsuarios) throw new Error("Aba 'USUARIOS' não encontrada.");
+     
+     const safe = v => (v === undefined || v === null ? '' : v);
+     
+     // === USERS (Base) ===
+     const usersBase = sheetUsuarios.getLastRow() > 1
+       ? sheetUsuarios.getRange(2, 1, sheetUsuarios.getLastRow() - 1, 8).getValues()
+           .filter(r => r[0])
+           .map(r => ({
+             id: safe(r[0]),
+             nome: safe(r[1]),
+             tipo: safe(r[2]),
+             email: safe(r[3]),
+             telefone: safe(r[4]),
+             pin: safe(r[5]),
+             comissao: parseFloat(r[6]) || 0,
+             status: safe(r[7]) || "Inativo"
+           }))
+       : [];
+     
+@@ -620,51 +621,52 @@ function obterDadosAdmin() {
+             mensagens: safe(r[12]),
+             ligacoes: safe(r[13]),
+             respPos: safe(r[14]),
+             respNeg: safe(r[15]),
+             motivoPerda: safe(r[16]),
+             obs: safe(r[17]),
+             vendedorId: safe(r[3]) // Assume criadoPor como vendedor
+           }))
+       : [];
+     
+     // === SALES (Enhanced) ===
+     const sales = sheetVendas && sheetVendas.getLastRow() > 1
+       ? sheetVendas
+           .getRange(2, 1, sheetVendas.getLastRow() - 1, 10)
+           .getValues()
+           .filter(r => r[0])
+           .map(r => ({
+             data: formatarData(r[0]),
+             tipo: safe(r[1]),
+             cliente: safe(r[2]),
+             empresa: safe(r[3]),
+             invoice: safe(r[4]),
+             produto: safe(r[5]),
+             valor: parseFloat(String(r[6]).replace(/[^0-9.-]+/g, '')) || 0,
+             comissao: parseFloat(String(r[7]).replace(/[^0-9.-]+/g, '')) || 0,
+-            vendedorId: safe(r[8])
++            vendedorId: safe(r[8]),
++            criadoPor: safe(r[9]) // Novo campo para manter o responsável pelo registro
+           }))
+       : [];
+     
+     // === CALCULA MÉTRICAS ANALÍTICAS PARA CADA USUÁRIO ===
+     const users = usersBase.map(user => {
+       const metrics = calcularMetricasUsuario(user.id, budgets, sales);
+       return {
+         ...user,
+         metrics: metrics
+       };
+     });
+     
+     // === ENRIQUECE BUDGETS COM MÉTRICAS ===
+     const budgetsEnhanced = budgets.map(b => calcularMetricasOrcamento(b));
+     
+     // === ENRIQUECE SALES COM MÉTRICAS ===
+     const salesEnhanced = sales.map(s => calcularMetricasVenda(s, budgets));
+     
+     // === REPORTS (KPIs Globais) ===
+     const totalVendas = sales.reduce((a, s) => a + s.valor, 0);
+     const totalComissoes = sales.reduce((a, s) => a + s.comissao, 0);
+     const orcamentosAbertos = budgets.filter(o => 
+       o.status === "Aberto" || o.status === "Proposta Enviada"
+     ).length;
+     const vendedoresAtivos = users.filter(u => u.status === "Ativo").length;
+@@ -713,72 +715,87 @@ function obterDadosAdmin() {
+         users: users,
+         budgets: budgetsEnhanced,
+         sales: salesEnhanced,
+         reports: reports,
+         settings: settings
+       }
+     };
+     
+     Logger.log('✅ Dados administrativos carregados com sucesso (v2.0)');
+     return result;
+     
+   } catch (e) {
+     Logger.log("❌ Erro em obterDadosAdmin: " + e);
+     return { success: false, message: e.message };
+   }
+ }
+ 
+ // ===============================================================
+ // VENDAS — CRUD COMPLETO (Mantido da versão anterior)
+ // ===============================================================
+ 
+ function registrarVenda(dados) {
+   try {
+     const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CLIENT_LIST);
+ 
++    if (!aba) {
++      throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
++    }
++
+     if (!dados || !dados.tipo || !dados.cliente || !dados.invoice) {
+       throw new Error('Campos obrigatórios não preenchidos.');
+     }
+ 
++    const sessao = obterSessaoAtiva();
++    const vendedorId = sessao?.id || '';
++    const criadoPor = sessao?.email || sessao?.nome || sessao?.id || 'Sistema';
++    // Garante que as colunas SELLER_ID e CREATED_BY sejam preenchidas conforme planilha real
++
+     const proximaLinha = aba.getLastRow() + 1;
+     let percentual = 0;
+ 
+     if (dados.tipo === 'New') percentual = 0.30;
+     else if (dados.tipo === 'Old') percentual = 0.20;
+     else if (dados.tipo === 'Walk-in') percentual = 0.10;
+ 
+     const valorVenda = Number(dados.valor) || 0;
+     const valorComissao = valorVenda * percentual;
+ 
+-    aba.getRange(proximaLinha, 1).setValue(new Date());
+-    aba.getRange(proximaLinha, 2).setValue(dados.tipo);
+-    aba.getRange(proximaLinha, 3).setValue(dados.cliente);
+-    aba.getRange(proximaLinha, 4).setValue(dados.empresa || '');
+-    aba.getRange(proximaLinha, 5).setValue(dados.invoice);
+-    aba.getRange(proximaLinha, 6).setValue(dados.produto || '');
+-    aba.getRange(proximaLinha, 7).setValue(valorVenda);
+-    aba.getRange(proximaLinha, 8).setValue(valorComissao.toFixed(2));
++    const novaLinha = [
++      new Date(),
++      dados.tipo,
++      dados.cliente,
++      dados.empresa || '',
++      dados.invoice,
++      dados.produto || '',
++      valorVenda,
++      valorComissao,
++      vendedorId,
++      criadoPor
++    ];
++
++    aba.getRange(proximaLinha, 1, 1, novaLinha.length).setValues([novaLinha]);
+ 
+     Logger.log(`✅ Venda registrada na linha ${proximaLinha}`);
+     return '✅ Venda registrada com sucesso!';
+   } catch (erro) {
+     Logger.log('❌ Erro ao registrar venda: ' + erro);
+     throw new Error('Erro ao registrar venda: ' + erro.message);
+   }
+ }
+ 
+ function buscarVenda(invoice) {
+   try {
+     const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CLIENT_LIST);
+     const dados = aba.getDataRange().getValues();
+     const invoiceBusca = String(invoice).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+ 
+     for (let i = 1; i < dados.length; i++) {
+       const invoiceCelula = String(dados[i][4] || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+ 
+       if (invoiceCelula === invoiceBusca) {
+         return {
+           linha: i + 1,
+           tipo: dados[i][1],
+           cliente: dados[i][2],
+           empresa: dados[i][3],
+           invoice: dados[i][4],
+@@ -1153,51 +1170,51 @@ function criarOuConfigurarVendas_(ss) {
+   const ruleType = SpreadsheetApp.newDataValidation()
+     .requireValueInList(['New', 'Old', 'Walk-in'], true)
+     .setAllowInvalid(false)
+     .build();
+   sh.getRange('B2:B').setDataValidation(ruleType);
+ 
+   protegerCabecalho_(sh, 1);
+ }
+ 
+ function criarOuConfigurarOrcamentos_(ss) {
+   let sh = ss.getSheetByName(NOME_ABA_ORCAMENTOS) || ss.insertSheet(NOME_ABA_ORCAMENTOS);
+ 
+   if (sh.getLastRow() === 0) {
+     sh.getRange(1, 1, 1, 18).setValues([[
+       'ID', 'DATA_CRIACAO', 'ORIGEM', 'CRIADO_POR', 'CLIENTE',
+       'EMAIL', 'TELEFONE', 'DESCRICAO', 'VALOR', 'STATUS',
+       'DATA_ENVIO', 'ULTIMO_CONTATO', 'MSG_ENVIADAS', 'LIGACOES_FEITAS',
+       'RESP_POS', 'RESP_NEG', 'MOTIVO_PERDA', 'OBSERVACOES'
+     ]]);
+   }
+ 
+   sh.getRange('B2:B').setNumberFormat('dd/mm/yyyy');
+   sh.getRange('I2:I').setNumberFormat('$#,##0.00');
+ 
+   const ruleStatus = SpreadsheetApp.newDataValidation()
+-    .requireValueInList(['Aberto', 'Proposta Enviada', 'Fechado', 'Perdido'], true)
++    .requireValueInList(['Aberto', 'Proposta Enviada', 'Fechado', 'Fechado (Venda)', 'Perdido'], true)
+     .setAllowInvalid(false)
+     .build();
+   sh.getRange('J2:J').setDataValidation(ruleStatus);
+ 
+   protegerCabecalho_(sh, 1);
+ }
+ 
+ function criarOuConfigurarUsuarios_(ss) {
+   let sh = ss.getSheetByName(NOME_ABA_USUARIOS) || ss.insertSheet(NOME_ABA_USUARIOS);
+ 
+   if (sh.getLastRow() === 0) {
+     sh.getRange(1, 1, 1, 8).setValues([[
+       'USER_ID', 'NOME', 'TIPO', 'EMAIL', 'TELEFONE', 'PIN', 'COMISSAO', 'STATUS'
+     ]]);
+   }
+ 
+   sh.getRange('G2:G').setNumberFormat('0.00%');
+ 
+   const ruleTipo = SpreadsheetApp.newDataValidation()
+     .requireValueInList(['Admin', 'Vendedor', 'Vendas', 'Funcionario', 'Afiliado'], true)
+     .setAllowInvalid(false)
+     .build();
+   sh.getRange('C2:C').setDataValidation(ruleTipo);
+ 
+   const ruleStatus = SpreadsheetApp.newDataValidation()
