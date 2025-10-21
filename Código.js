@@ -758,13 +758,9 @@ function obterDadosAdmin() {
       budgets: db.budgetsNormalizados,
       sales: db.salesBase,
       clients: db.clientesBase,
-      reports: {
-        totalUsuarios: db.totalUsuarios,
-        totalOrcamentos: db.totalOrcamentos,
-        totalVendas: db.totalVendas,
-        totalClientes: db.totalClientes
-      },
-      settings: db.settings
+      reports: db.reports || {},
+      settings: db.settings || {},
+      audit: db.auditoriaBase || []
     };
 
   } catch (e) {
@@ -780,37 +776,369 @@ function obterDadosAdmin() {
 // ===============================================================
 // 🧩 MÓDULO: CONSOLIDAÇÃO DE DADOS — F/Design Solutions
 // ===============================================================
+// ===============================================================
+// 🔧 Utilidades dinâmicas para consolidação final
+// ===============================================================
+
+function normalizarCabecalhoBruto_(valor) {
+  if (!valor) return '';
+  return String(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_|_$/g, '')
+    .toUpperCase();
+}
+
+function gerarChaveCamelCase_(chaveNormalizada) {
+  if (!chaveNormalizada) return '';
+  const partes = chaveNormalizada.toLowerCase().split('_');
+  let resultado = '';
+  for (let i = 0; i < partes.length; i++) {
+    const parte = partes[i];
+    if (!parte) continue;
+    if (i === 0) {
+      resultado += parte;
+    } else {
+      resultado += parte.charAt(0).toUpperCase() + parte.slice(1);
+    }
+  }
+  return resultado;
+}
+
+function obterChaveCanonica_(chaveNormalizada) {
+  if (!chaveNormalizada) return '';
+
+  const mapa = {
+    'ID': 'id',
+    'NOME': 'nome',
+    'TIPO': 'tipo',
+    'TYPE': 'tipo',
+    'TIPO_VENDA': 'tipo',
+    'EMAIL': 'email',
+    'TELEFONE': 'telefone',
+    'PIN': 'pin',
+    'COMISSAO': 'comissao',
+    'PERCENTUAL': 'percentual',
+    'PERCENT_OF_SALES': 'comissao',
+    'COMMISSION': 'comissao',
+    'STATUS': 'status',
+    'DATA': 'data',
+    'DATA_VENDA': 'data',
+    'DATA_CRIACAO': 'dataCriacao',
+    'DATA_CRIACAO_ISO': 'dataCriacaoISO',
+    'DATA_ENVIO': 'dataEnvio',
+    'ULTIMO_CONTATO': 'ultimoContato',
+    'DATAISO': 'dataISO',
+    'DATA_ISO': 'dataISO',
+    'DATA_INICIO': 'dataInicio',
+    'DATA_FIM': 'dataFim',
+    'ORIGEM': 'origem',
+    'CLIENTE': 'cliente',
+    'CLIENT_NAME': 'cliente',
+    'CLIENT': 'cliente',
+    'BUSINESS_NAME': 'empresa',
+    'EMPRESA': 'empresa',
+    'EMPRESA_NOME': 'empresaNome',
+    'INVOICE': 'invoice',
+    'PRODUCT_DESCRIPTION': 'produto',
+    'PRODUTO': 'produto',
+    'DESCRICAO': 'descricao',
+    'DESCRICAO_PRODUTO': 'descricaoProduto',
+    'VALOR': 'valor',
+    'VALOR_TOTAL': 'valorTotal',
+    'AMOUNT': 'valor',
+    'AMOUNT_USD': 'valor',
+    'SELLER_ID': 'vendedorId',
+    'VENDEDOR_ID': 'vendedorId',
+    'VENDEDOR': 'vendedorNome',
+    'VENDEDOR_NOME': 'vendedorNome',
+    'RESPONSAVEL': 'responsavelNome',
+    'RESPONSAVEL_NOME': 'responsavelNome',
+    'RESPONSAVELNOME': 'responsavelNome',
+    'CRIADO_POR': 'criadoPor',
+    'CREATED_BY': 'criadoPor',
+    'PROBABILIDADE_CONVERSAO': 'probabilidadeConversao',
+    'OBS': 'obs',
+    'OBSERVACOES': 'observacoes',
+    'MSG_ENVIADAS': 'mensagens',
+    'MENSAGENS': 'mensagens',
+    'LIGACOES_FEITAS': 'ligacoes',
+    'LIGACOES': 'ligacoes',
+    'RESP_POS': 'respPos',
+    'RESP_NEG': 'respNeg',
+    'MOTIVO_PERDA': 'motivoPerda',
+    'CHAVE': 'chave',
+    'VALOR_CONFIG': 'valor',
+    'VALOR_CONFIGURACAO': 'valor',
+    'VALOR_CONFIGURACOES': 'valor',
+    'VALORCONFIGURACAO': 'valor',
+    'VALORCONFIG': 'valor',
+    'DETALHES': 'detalhes',
+    'ACAO': 'acao',
+    'USUARIO': 'usuario',
+    'USER': 'usuario',
+    'USERKEY': 'userKey'
+  };
+
+  if (mapa[chaveNormalizada]) {
+    return mapa[chaveNormalizada];
+  }
+
+  return gerarChaveCamelCase_(chaveNormalizada);
+}
+
+function obterValorCampo_(registro, chaves) {
+  if (!registro || !Array.isArray(chaves)) return null;
+  for (let i = 0; i < chaves.length; i++) {
+    const chave = chaves[i];
+    if (!chave) continue;
+    if (Object.prototype.hasOwnProperty.call(registro, chave)) {
+      const valor = registro[chave];
+      if (valor === 0 || valor === false) {
+        return valor;
+      }
+      if (valor !== null && valor !== undefined && valor !== '') {
+        return valor;
+      }
+    }
+  }
+  return null;
+}
+
+function ajustarTiposRegistro_(registro) {
+  if (!registro) return registro;
+
+  const chaves = Object.keys(registro);
+  for (let i = 0; i < chaves.length; i++) {
+    const chave = chaves[i];
+    const valor = registro[chave];
+    if (valor instanceof Date && !/ISO$/i.test(chave)) {
+      const isoKey = chave + 'ISO';
+      if (!registro[isoKey]) {
+        registro[isoKey] = valor.toISOString();
+      }
+      registro[chave] = formatarData(valor);
+    }
+  }
+
+  return registro;
+}
+
+function lerAbaDinamica_(sheet) {
+  try {
+    if (!sheet) {
+      return [];
+    }
+
+    const lastRow = sheet.getLastRow();
+    const lastColumn = sheet.getLastColumn();
+    if (lastRow < 1 || lastColumn < 1) {
+      return [];
+    }
+
+    const valores = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
+    if (!valores || valores.length === 0) {
+      return [];
+    }
+
+    const cabecalhosBrutos = valores[0];
+    const cabecalhosNormalizados = cabecalhosBrutos.map(normalizarCabecalhoBruto_);
+    const registros = [];
+
+    for (let linha = 1; linha < valores.length; linha++) {
+      const atual = valores[linha];
+      if (!atual || atual.length === 0) continue;
+
+      let possuiDados = false;
+      const registro = {};
+
+      for (let coluna = 0; coluna < cabecalhosNormalizados.length; coluna++) {
+        const chaveNormalizada = cabecalhosNormalizados[coluna];
+        if (!chaveNormalizada) continue;
+
+        const valorCelula = coluna < atual.length && atual[coluna] !== undefined ? atual[coluna] : '';
+        if (valorCelula !== '' && valorCelula !== null) {
+          possuiDados = true;
+        }
+
+        const cabecalhoOriginal = cabecalhosBrutos[coluna];
+        const chaveCanonica = obterChaveCanonica_(chaveNormalizada);
+
+        if (cabecalhoOriginal && registro[cabecalhoOriginal] === undefined) {
+          registro[cabecalhoOriginal] = valorCelula;
+        }
+
+        if (registro[chaveNormalizada] === undefined) {
+          registro[chaveNormalizada] = valorCelula;
+        }
+
+        if (chaveCanonica && registro[chaveCanonica] === undefined) {
+          registro[chaveCanonica] = valorCelula;
+        }
+      }
+
+      if (possuiDados) {
+        registros.push(ajustarTiposRegistro_(registro));
+      }
+    }
+
+    return registros;
+  } catch (erro) {
+    console.error('❌ Falha ao ler aba dinamicamente:', erro);
+    return [];
+  }
+}
+
+function construirMapaConfiguracoes_(configRows) {
+  const mapa = {};
+  if (!Array.isArray(configRows)) {
+    return mapa;
+  }
+
+  for (let i = 0; i < configRows.length; i++) {
+    const linha = configRows[i];
+    const chaveBruta = obterValorCampo_(linha, ['chave', 'CHAVE', 'Chave']);
+    const chave = chaveBruta ? String(chaveBruta).trim() : '';
+    if (!chave) continue;
+    const valor = obterValorCampo_(linha, ['valor', 'VALOR', 'Value']);
+    mapa[chave] = valor;
+  }
+
+  return mapa;
+}
+
+function calcularRelatoriosConsolidados_(usuarios, budgets, sales) {
+  const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
+  const listaBudgets = Array.isArray(budgets) ? budgets : [];
+  const listaSales = Array.isArray(sales) ? sales : [];
+
+  let somaVendas = 0;
+  let somaComissoes = 0;
+  const vendedoresSet = {};
+  const vendasPorTipo = {};
+
+  for (let i = 0; i < listaSales.length; i++) {
+    const venda = listaSales[i];
+    const valorVenda = normalizarValorNumerico(obterValorCampo_(venda, ['valor', 'VALOR', 'amount', 'AMOUNT']));
+    const valorComissao = normalizarValorNumerico(obterValorCampo_(venda, ['comissao', 'COMISSAO', 'percentual', 'PERCENTUAL', 'PERCENT_OF_SALES', 'COMMISSION']));
+    somaVendas += valorVenda;
+    somaComissoes += valorComissao;
+
+    const vendedor = obterValorCampo_(venda, ['vendedorNome', 'VENDEDOR_NOME', 'vendedorId', 'VENDEDOR_ID', 'SELLER_ID']);
+    if (vendedor) {
+      const chaveVendedor = String(vendedor).trim();
+      if (chaveVendedor) {
+        vendedoresSet[chaveVendedor] = true;
+      }
+    }
+
+    const tipo = String(obterValorCampo_(venda, ['tipo', 'TIPO', 'TYPE']) || 'Sem Tipo').trim() || 'Sem Tipo';
+    vendasPorTipo[tipo] = (vendasPorTipo[tipo] || 0) + valorVenda;
+  }
+
+  const grafVendasPorTipo = [['Tipo', 'Total']];
+  const tipos = Object.keys(vendasPorTipo);
+  if (tipos.length === 0) {
+    grafVendasPorTipo.push(['Sem registros', 0]);
+  } else {
+    for (let i = 0; i < tipos.length; i++) {
+      const chaveTipo = tipos[i];
+      grafVendasPorTipo.push([chaveTipo, Number(vendasPorTipo[chaveTipo] || 0)]);
+    }
+  }
+
+  const statusCounts = {};
+  let orcamentosAbertos = 0;
+  let orcamentosConvertidos = 0;
+
+  for (let i = 0; i < listaBudgets.length; i++) {
+    const budget = listaBudgets[i];
+    const statusBruto = obterValorCampo_(budget, ['status', 'STATUS', 'situacao', 'SITUACAO']);
+    const statusTexto = statusBruto ? String(statusBruto).trim() : 'Sem Status';
+    const statusUpper = statusTexto.toUpperCase();
+
+    statusCounts[statusTexto] = (statusCounts[statusTexto] || 0) + 1;
+
+    const responsavel = obterValorCampo_(budget, ['responsavelNome', 'RESPONSAVEL_NOME', 'responsavel', 'RESPONSAVEL', 'criadoPor', 'CRIADO_POR']);
+    if (responsavel) {
+      const chaveResp = String(responsavel).trim();
+      if (chaveResp) {
+        vendedoresSet[chaveResp] = true;
+      }
+    }
+
+    const ehConvertido = statusUpper.indexOf('FECH') >= 0 || statusUpper.indexOf('VEND') >= 0 || statusUpper.indexOf('GANH') >= 0 || statusUpper.indexOf('CONCL') >= 0;
+    const ehPerdido = statusUpper.indexOf('PERD') >= 0 || statusUpper.indexOf('CANC') >= 0;
+    if (ehConvertido) {
+      orcamentosConvertidos++;
+    }
+    if (!ehConvertido && !ehPerdido) {
+      orcamentosAbertos++;
+    }
+  }
+
+  const grafOrcPorStatus = [['Status', 'Total']];
+  const statusKeys = Object.keys(statusCounts);
+  if (statusKeys.length === 0) {
+    grafOrcPorStatus.push(['Sem registros', 0]);
+  } else {
+    for (let i = 0; i < statusKeys.length; i++) {
+      const status = statusKeys[i];
+      grafOrcPorStatus.push([status, Number(statusCounts[status] || 0)]);
+    }
+  }
+
+  const totalOrcamentos = listaBudgets.length;
+  const taxaConversao = totalOrcamentos > 0 ? (orcamentosConvertidos / totalOrcamentos) * 100 : 0;
+
+  return {
+    kpis: {
+      totalUsuarios: listaUsuarios.length,
+      totalOrcamentos: totalOrcamentos,
+      totalVendas: Number(somaVendas.toFixed(2)),
+      totalComissoes: Number(somaComissoes.toFixed(2)),
+      orcamentosAbertos: orcamentosAbertos,
+      vendedoresAtivos: Object.keys(vendedoresSet).length,
+      taxaConversao: Number(taxaConversao.toFixed(1))
+    },
+    grafVendasPorTipo: grafVendasPorTipo,
+    grafOrcPorStatus: grafOrcPorStatus
+  };
+}
+
 function consolidarBanco() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  const abas = {
-    usuarios: ss.getSheetByName("USUARIOS"),
-    orcamentos: ss.getSheetByName("ORÇAMENTOS"),
-    vendas: ss.getSheetByName("TABLEA DE VENDAS"),
-    clientes: ss.getSheetByName("CLIENT_LIST"),
-    config: ss.getSheetByName("CONFIG")
-  };
+  const abaUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
+  const abaVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
+  const abaOrcamentosPrincipal = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
+  const abaOrcamentos = abaOrcamentosPrincipal || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
+  if (!abaOrcamentosPrincipal && abaOrcamentos) {
+    console.warn(`⚠️ Utilizando aba fallback na consolidação: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
+  }
+  const abaClientes = obterAbaComLogs(ss, NOME_ABA_CLIENT_LIST);
+  const abaConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
+  const abaAuditoria = obterAbaComLogs(ss, NOME_ABA_AUDITORIA);
 
-  const lerAba = (sheet) => {
-    if (!sheet) return [];
-    const data = sheet.getDataRange().getValues();
-    if (data.length < 2) return [];
+  const usuariosBase = lerAbaDinamica_(abaUsuarios);
+  const budgetsNormalizados = lerAbaDinamica_(abaOrcamentos);
+  const salesBase = lerAbaDinamica_(abaVendas);
+  const clientesBase = lerAbaDinamica_(abaClientes);
+  const auditoriaBase = lerAbaDinamica_(abaAuditoria);
+  const configuracoesLista = lerAbaDinamica_(abaConfig);
 
-    const headers = data[0].map(h => String(h).trim());
-    return data.slice(1).map(row => {
-      const obj = {};
-      headers.forEach((h, i) => {
-        obj[h] = row[i] !== undefined ? row[i] : "";
-      });
-      return obj;
-    });
-  };
+  const settings = construirMapaConfiguracoes_(configuracoesLista);
+  const reports = calcularRelatoriosConsolidados_(usuariosBase, budgetsNormalizados, salesBase);
 
-  const usuariosBase = lerAba(abas.usuarios);
-  const budgetsNormalizados = lerAba(abas.orcamentos);
-  const salesBase = lerAba(abas.vendas);
-  const clientesBase = lerAba(abas.clientes);
-  const settings = abas.config ? lerAba(abas.config) : [];
+  console.log('✅ consolidação dinâmica concluída', {
+    usuarios: usuariosBase.length,
+    budgets: budgetsNormalizados.length,
+    sales: salesBase.length,
+    clientes: clientesBase.length,
+    auditoria: auditoriaBase.length
+  });
 
   return {
     success: true,
@@ -818,7 +1146,9 @@ function consolidarBanco() {
     budgetsNormalizados,
     salesBase,
     clientesBase,
+    auditoriaBase,
     settings,
+    reports,
     totalUsuarios: usuariosBase.length,
     totalOrcamentos: budgetsNormalizados.length,
     totalVendas: salesBase.length,
