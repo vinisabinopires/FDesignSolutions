@@ -1023,90 +1023,100 @@
       toggleRefreshButton(false);
     }
 
-    // =========================================
-    // INICIALIZAÇÃO
-    // =========================================
-    window.addEventListener('DOMContentLoaded', function () {
-      console.log('🚀 Painel Administrativo v2.0 iniciado...');
-      google.charts.load('current', { packages: ['corechart'] });
-      refreshButton = document.getElementById('refreshDataButton');
-      if (refreshButton) {
-        // Atualização agora depende de ação manual do administrador
-        refreshButton.addEventListener('click', () => {
-          carregarDadosAdmin();
-        });
-      }
-      carregarDadosAdmin();
+// =========================================
+// INICIALIZAÇÃO (corrigida para evitar loop infinito)
+// =========================================
+window.addEventListener('DOMContentLoaded', function () {
+  console.log('🚀 Painel Administrativo v2.0 iniciado...');
+  google.charts.load('current', { packages: ['corechart'] });
+
+  refreshButton = document.getElementById('refreshDataButton');
+  if (refreshButton) {
+    refreshButton.addEventListener('click', () => {
+      // Evita múltiplos cliques e recarregamentos simultâneos
+      if (refreshButton.disabled) return;
+      carregarDadosAdmin(false); // chamada manual
     });
+  }
 
-    // =========================================
-    // FUNÇÃO PRINCIPAL: CARREGAR DADOS
-    // =========================================
-    function carregarDadosAdmin() {
-      setLoadingState(true);
-      toggleRefreshButton(true);
-      google.script.run
-        .withSuccessHandler(onSuccessCarregarDados)
-        .withFailureHandler(onErrorCarregarDados)
-        .obterDadosAdmin();
-    }
+  // Executa apenas uma vez no carregamento inicial
+  carregarDadosAdmin(true);
+});
 
-    function onSuccessCarregarDados(response) {
-      console.log('✅ Dados recebidos:', response);
-      if (!response || !response.success) {
-        finalizarCarregamento();
-        showError('Erro ao carregar dados: ' + (response?.message || 'Falha desconhecida.'));
-        return;
-      }
+// =========================================
+// FUNÇÃO PRINCIPAL: CARREGAR DADOS
+// =========================================
+function carregarDadosAdmin(isInitial = false) {
+  console.log('⏳ Carregando dados administrativos...', { isInitial });
+  setLoadingState(true);
+  toggleRefreshButton(true);
 
-      setLoadingState(false);
-      adminData = {
-        reports: response.reports || {},
-        settings: response.settings || {},
-        budgets: Array.isArray(response.budgets) ? response.budgets : [],
-        sales: Array.isArray(response.sales) ? response.sales : [],
-        users: Array.isArray(response.users)
-          ? response.users.map((user, index) => {
-              const normalized = cloneMetrics(user.metrics);
-              const safeId = getSafeId(user.id || user.email || index, 'user');
-              return {
-                ...user,
-                metrics: deepClone(normalized),
-                _safeId: safeId,
-                _index: index,
-                _baselineMetrics: deepClone(normalized),
-                _metricsCurrent: deepClone(normalized),
-                _lastFilter: null
-              };
-            })
-          : []
-      };
+  google.script.run
+    .withSuccessHandler(onSuccessCarregarDados)
+    .withFailureHandler(onErrorCarregarDados)
+    .obterDadosAdmin();
+}
 
-      filteredBudgets = [...adminData.budgets];
-      filteredSales = [...adminData.sales];
-      budgetFiltersInitialized = false;
-      salesFiltersInitialized = false;
+function onSuccessCarregarDados(response) {
+  console.log('✅ Dados recebidos:', response);
+  toggleRefreshButton(false);
+  setLoadingState(false);
 
-      try {
-        renderReports(adminData.reports);
-        renderUsers(adminData.users);
-        renderBudgets(adminData.budgets);
-        renderSales(adminData.sales);
-        renderSettings(adminData.settings);
-        showAlert('✅ Dados carregados com sucesso!');
-      } catch (renderError) {
-        console.error('⚠️ Falha ao renderizar o painel:', renderError);
-        showError('Erro ao exibir os dados no painel. Verifique os logs.');
-      } finally {
-        finalizarCarregamento();
-      }
-    }
+  if (!response || !response.success) {
+    showError('Erro ao carregar dados: ' + (response?.message || 'Falha desconhecida.'));
+    return;
+  }
 
-    function onErrorCarregarDados(error) {
-      console.error('❌ Erro ao carregar dados:', error);
-      finalizarCarregamento();
-      showError('Erro de conexão: ' + (error?.message || 'Erro desconhecido.'));
-    }
+  // 🧩 Estruturação global de dados — restauração completa
+  adminData = {
+    reports: response.reports || {},
+    settings: response.settings || {},
+    budgets: Array.isArray(response.budgets) ? response.budgets : [],
+    sales: Array.isArray(response.sales) ? response.sales : [],
+    users: Array.isArray(response.users)
+      ? response.users.map((user, index) => {
+          const normalized = cloneMetrics(user.metrics);
+          const safeId = getSafeId(user.id || user.email || index, 'user');
+          return {
+            ...user,
+            metrics: deepClone(normalized),
+            _safeId: safeId,
+            _index: index,
+            _baselineMetrics: deepClone(normalized),
+            _metricsCurrent: deepClone(normalized),
+            _lastFilter: null
+          };
+        })
+      : []
+  };
+
+  // 🔁 Inicializa variáveis auxiliares globais
+  filteredBudgets = [...adminData.budgets];
+  filteredSales = [...adminData.sales];
+  budgetFiltersInitialized = false;
+  salesFiltersInitialized = false;
+
+  // 🔹 Renderização principal (com logs de debug)
+  try {
+    console.log('🧩 Debug budgets:', adminData.budgets);
+    renderReports(adminData.reports);
+    renderUsers(adminData.users);
+    renderBudgets(adminData.budgets);
+    renderSales(adminData.sales);
+    renderSettings(adminData.settings);
+    showAlert('✅ Dados carregados com sucesso!');
+  } catch (err) {
+    console.error('⚠️ Erro ao renderizar painel:', err);
+    showError('Erro ao exibir dados. Verifique os logs.');
+  }
+}
+
+function onErrorCarregarDados(error) {
+  console.error('❌ Erro ao carregar dados:', error);
+  toggleRefreshButton(false);
+  setLoadingState(false);
+  showError('Erro de conexão: ' + (error?.message || 'Erro desconhecido.'));
+}
 
     // =========================================
     // 📊 RENDERIZAÇÃO: REPORTS
@@ -1567,15 +1577,25 @@
     }
 
     function renderBudgets(budgets) {
-      const loading = document.getElementById('budgetsLoading');
-      const content = document.getElementById('budgetsContent');
-      if (loading) loading.style.display = 'none';
-      if (content) content.style.display = 'block';
+  const loading = document.getElementById('budgetsLoading');
+  const content = document.getElementById('budgetsContent');
+  if (loading) loading.style.display = 'none';
+  if (content) content.style.display = 'block';
 
-      filteredBudgets = Array.isArray(budgets) ? [...budgets] : [];
-      setupBudgetFilters(adminData.budgets);
-      applyBudgetFilter();
-    }
+  // Garante que budgets seja um array válido
+  const lista = Array.isArray(budgets)
+    ? budgets
+    : (budgets && budgets.budgets)
+    ? budgets.budgets
+    : [];
+
+  filteredBudgets = [...lista];
+
+  // Usa a própria lista recebida em vez de depender do adminData global
+  setupBudgetFilters(lista);
+  applyBudgetFilter();
+}
+
 
     function setupBudgetFilters(lista) {
       const collection = Array.isArray(lista) ? lista : [];

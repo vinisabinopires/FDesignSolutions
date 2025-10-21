@@ -643,14 +643,16 @@ function calcularMetricasVenda(sale, budgets) {
     let tentativasContato = 0;
     
     if (relatedBudget) {
-      // Calcula tempo de conversão
-      const dataOrc = relatedBudget.dataCriacao;
-      const dataVenda = sale.data;
-      // Implementar cálculo de diferença de dias
-      
-      tentativasContato = (parseInt(relatedBudget.mensagens) || 0) + 
-                          (parseInt(relatedBudget.ligacoes) || 0);
-    }
+  const dataOrc = new Date(relatedBudget.dataCriacaoISO || relatedBudget.dataCriacao);
+  const dataVenda = new Date(sale.dataISO || sale.data);
+  if (!isNaN(dataOrc) && !isNaN(dataVenda)) {
+    tempoConversao = Math.round((dataVenda - dataOrc) / (1000 * 60 * 60 * 24));
+  }
+
+  tentativasContato = (parseInt(relatedBudget.mensagens) || 0) +
+                      (parseInt(relatedBudget.ligacoes) || 0);
+}
+
     
     const valorPorHora = tentativasContato > 0 
       ? (sale.valor / tentativasContato).toFixed(2)
@@ -666,261 +668,6 @@ function calcularMetricasVenda(sale, budgets) {
   } catch (err) {
     Logger.log('❌ Erro ao calcular métricas de venda: ' + err);
     return sale;
-  }
-}
-
-// ===============================================================
-// 📊 PAINEL ADMINISTRATIVO — DADOS ANALÍTICOS (V2.0)
-// ===============================================================
-
-function obterDadosAdmin() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
-    if (!sheetUsuarios) {
-      throw new Error("Aba 'USUARIOS' não encontrada.");
-    }
-
-    const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
-    const sheetOrcamentosPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
-    const sheetOrcamentos = sheetOrcamentosPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
-    if (!sheetOrcamentosPrimario && sheetOrcamentos) {
-      console.warn(`ℹ️ Utilizando aba fallback: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
-    }
-
-    const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
-
-    const safeText = valor => {
-      if (valor === undefined || valor === null) {
-        return '';
-      }
-      return String(valor).trim();
-    };
-
-    const inteiro = valor => {
-      const numero = normalizarValorNumerico(valor);
-      return Number.isFinite(numero) ? Math.round(numero) : 0;
-    };
-
-    const usuariosBase = sheetUsuarios.getLastRow() > 1
-      ? sheetUsuarios.getRange(2, 1, sheetUsuarios.getLastRow() - 1, 8).getValues()
-          .filter(linha => linha[0])
-          .map(linha => {
-            const email = safeText(linha[3]);
-            return {
-              id: safeText(linha[0]),
-              nome: safeText(linha[1]),
-              tipo: safeText(linha[2]),
-              email: email,
-              telefone: safeText(linha[4]),
-              pin: safeText(linha[5]),
-              comissao: normalizarValorNumerico(linha[6]),
-              status: safeText(linha[7]) || 'Inativo'
-            };
-          })
-      : [];
-
-    const usuariosPorId = {};
-    const usuariosPorEmail = {};
-    usuariosBase.forEach(usuario => {
-      const id = safeText(usuario.id);
-      if (id) {
-        usuariosPorId[id] = usuario;
-      }
-
-      const email = safeText(usuario.email).toLowerCase();
-      if (email) {
-        usuariosPorEmail[email] = usuario;
-      }
-    });
-
-    const resolverNomeUsuario = referencia => {
-      const chave = safeText(referencia);
-      if (!chave) {
-        return '';
-      }
-
-      if (usuariosPorId[chave]) {
-        return usuariosPorId[chave].nome;
-      }
-
-      const porEmail = usuariosPorEmail[chave.toLowerCase()];
-      if (porEmail) {
-        return porEmail.nome;
-      }
-
-      return chave;
-    };
-
-    const budgetsBase = sheetOrcamentos && sheetOrcamentos.getLastRow() > 1
-      ? sheetOrcamentos
-          .getRange(2, 1, sheetOrcamentos.getLastRow() - 1, 18)
-          .getValues()
-          .filter(linha => linha[0])
-          .map(linha => {
-            const vendedorId = safeText(linha[3]);
-            return {
-              id: safeText(linha[0]),
-              dataCriacao: formatarData(linha[1]),
-              dataCriacaoISO: linha[1] instanceof Date ? linha[1].toISOString() : '',
-              origem: safeText(linha[2]),
-              tipo: safeText(linha[2]),
-              criadoPor: vendedorId,
-              cliente: safeText(linha[4]),
-              email: safeText(linha[5]),
-              telefone: safeText(linha[6]),
-              descricao: safeText(linha[7]),
-              valor: parseFloat(normalizarValorNumerico(linha[8]).toFixed(2)),
-              status: safeText(linha[9]),
-              dataEnvio: formatarData(linha[10]),
-              dataEnvioISO: linha[10] instanceof Date ? linha[10].toISOString() : '',
-              ultimoContato: formatarData(linha[11]),
-              ultimoContatoISO: linha[11] instanceof Date ? linha[11].toISOString() : '',
-              mensagens: inteiro(linha[12]),
-              ligacoes: inteiro(linha[13]),
-              respPos: inteiro(linha[14]),
-              respNeg: inteiro(linha[15]),
-              motivoPerda: safeText(linha[16]),
-              obs: safeText(linha[17]),
-              vendedorId: vendedorId
-            };
-          })
-      : [];
-
-    const budgetsNormalizados = budgetsBase.map(orçamento => ({
-      ...orçamento,
-      responsavelNome: resolverNomeUsuario(orçamento.vendedorId || orçamento.criadoPor) || '-'
-    }));
-
-    const salesBase = sheetVendas && sheetVendas.getLastRow() > 1
-      ? sheetVendas
-          .getRange(2, 1, sheetVendas.getLastRow() - 1, 10)
-          .getValues()
-          .filter(linha => linha[0])
-          .map(linha => {
-            const tipo = safeText(linha[1]);
-            const valorBruto = parseFloat(normalizarValorNumerico(linha[6]).toFixed(2));
-            const comissaoInformada = normalizarValorNumerico(linha[7]);
-            const vendedorId = safeText(linha[8]);
-            const criadoPor = safeText(linha[9]);
-            const regraPercentual = obterPercentualComissaoPorTipo(tipo);
-
-            let comissaoCalculada = comissaoInformada;
-            if (!comissaoCalculada && regraPercentual !== null) {
-              comissaoCalculada = valorBruto * regraPercentual;
-            }
-
-            const comissaoFinal = parseFloat((comissaoCalculada || 0).toFixed(2));
-            const percentualDecimal = valorBruto > 0
-              ? comissaoFinal / valorBruto
-              : regraPercentual || 0;
-            const percentualPercent = parseFloat((percentualDecimal * 100).toFixed(2));
-            const vendedorNome = resolverNomeUsuario(vendedorId || criadoPor);
-
-            return {
-              data: formatarData(linha[0]),
-              dataISO: linha[0] instanceof Date ? linha[0].toISOString() : '',
-              tipo: tipo,
-              cliente: safeText(linha[2]),
-              empresa: safeText(linha[3]),
-              invoice: safeText(linha[4]),
-              produto: safeText(linha[5]),
-              valor: valorBruto,
-              comissao: comissaoFinal,
-              comissaoPercentual: percentualPercent,
-              vendedorId: vendedorId,
-              vendedorNome: vendedorNome || vendedorId || criadoPor || '-',
-              criadoPor: criadoPor
-            };
-          })
-      : [];
-
-    const users = usuariosBase.map(usuario => {
-      const metricas = calcularMetricasUsuario(usuario.id, budgetsNormalizados, salesBase);
-      return {
-        ...usuario,
-        metrics: metricas || criarMetricasUsuarioVazias()
-      };
-    });
-
-    const budgetsEnhanced = budgetsNormalizados.map(item => calcularMetricasOrcamento(item));
-    const salesEnhanced = salesBase.map(item => calcularMetricasVenda(item, budgetsEnhanced))
-      .map((item, indice) => ({
-        ...item,
-        vendedorNome: salesBase[indice].vendedorNome,
-        comissaoPercentual: salesBase[indice].comissaoPercentual
-      }));
-
-    const totalVendas = salesEnhanced.reduce((acumulado, venda) => acumulado + (venda.valor || 0), 0);
-    const totalComissoes = salesEnhanced.reduce((acumulado, venda) => acumulado + (venda.comissao || 0), 0);
-    const orcamentosAbertos = budgetsEnhanced.filter(orçamento => {
-      const status = safeText(orçamento.status).toLowerCase();
-      return status === 'aberto' || status === 'proposta enviada';
-    }).length;
-    const vendedoresAtivos = users.filter(usuario => safeText(usuario.status).toLowerCase() === 'ativo').length;
-    const taxaConversao = budgetsEnhanced.length > 0
-      ? parseFloat(((salesEnhanced.length / budgetsEnhanced.length) * 100).toFixed(1))
-      : 0;
-
-    const vendasPorTipo = salesEnhanced.reduce((acumulado, venda) => {
-      const tipo = safeText(venda.tipo) || 'Sem Tipo';
-      acumulado[tipo] = (acumulado[tipo] || 0) + (venda.valor || 0);
-      return acumulado;
-    }, {});
-
-    const orcamentosPorStatus = budgetsEnhanced.reduce((acumulado, orçamento) => {
-      const status = safeText(orçamento.status) || 'Sem Status';
-      acumulado[status] = (acumulado[status] || 0) + 1;
-      return acumulado;
-    }, {});
-
-    const graficoVendasPorTipo = Object.keys(vendasPorTipo).length > 0
-      ? [['Tipo', 'Valor']].concat(Object.entries(vendasPorTipo))
-      : [['Tipo', 'Valor'], ['Sem Dados', 0]];
-
-    const graficoOrcamentosPorStatus = Object.keys(orcamentosPorStatus).length > 0
-      ? [['Status', 'Quantidade']].concat(Object.entries(orcamentosPorStatus))
-      : [['Status', 'Quantidade'], ['Sem Dados', 0]];
-
-    const reports = {
-      kpis: {
-        totalVendas: parseFloat(totalVendas.toFixed(2)),
-        totalComissoes: parseFloat(totalComissoes.toFixed(2)),
-        orcamentosAbertos: orcamentosAbertos,
-        vendedoresAtivos: vendedoresAtivos,
-        taxaConversao: taxaConversao
-      },
-      grafVendasPorTipo: graficoVendasPorTipo,
-      grafOrcPorStatus: graficoOrcamentosPorStatus
-    };
-
-    const settings = sheetConfig
-      ? Object.fromEntries(
-          sheetConfig.getDataRange().getValues()
-            .filter(linha => linha[0])
-            .map(linha => [linha[0], linha[1]])
-        )
-      : {};
-
-    Logger.log(`✅ Dados administrativos carregados com sucesso: ${users.length} usuários, ${budgetsEnhanced.length} orçamentos, ${salesEnhanced.length} vendas.`);
-
-    return {
-      success: true,
-      users: users,
-      budgets: budgetsEnhanced,
-      sales: salesEnhanced,
-      reports: reports,
-      settings: settings
-    };
-
-  } catch (e) {
-    Logger.log(`❌ Erro em obterDadosAdmin: ${e} | Stack: ${e && e.stack}`);
-    return {
-      success: false,
-      message: e && e.message ? e.message : 'Erro ao carregar dados administrativos.',
-      details: String(e)
-    };
   }
 }
 
@@ -993,6 +740,90 @@ function filtrarMetricasPorPeriodo(userId, start, end) {
 
   Logger.log(`📊 ${resultados.length} registros filtrados para ${userId}`);
   return resultados;
+}
+
+// ===============================================================
+// 📊 PAINEL ADMINISTRATIVO — DADOS ANALÍTICOS (V2.0)
+// ===============================================================
+function obterDadosAdmin() {
+  try {
+    const db = consolidarBanco();
+    Logger.log(`✅ consolidação concluída: ${db.usuariosBase?.length || 0} usuários, ${db.budgetsNormalizados?.length || 0} orçamentos.`);
+
+    // 🔹 Retorno no formato esperado pelo painel HTML
+    return {
+      success: true,
+      message: "Dados carregados com sucesso.",
+      users: db.usuariosBase,
+      budgets: db.budgetsNormalizados,
+      sales: db.salesBase,
+      clients: db.clientesBase,
+      reports: {
+        totalUsuarios: db.totalUsuarios,
+        totalOrcamentos: db.totalOrcamentos,
+        totalVendas: db.totalVendas,
+        totalClientes: db.totalClientes
+      },
+      settings: db.settings
+    };
+
+  } catch (e) {
+    Logger.log(`❌ Erro em obterDadosAdmin: ${e} | Stack: ${e && e.stack}`);
+    return {
+      success: false,
+      message: e && e.message ? e.message : 'Erro desconhecido em obterDadosAdmin',
+      details: String(e)
+    };
+  }
+}
+
+// ===============================================================
+// 🧩 MÓDULO: CONSOLIDAÇÃO DE DADOS — F/Design Solutions
+// ===============================================================
+function consolidarBanco() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const abas = {
+    usuarios: ss.getSheetByName("USUARIOS"),
+    orcamentos: ss.getSheetByName("ORÇAMENTOS"),
+    vendas: ss.getSheetByName("TABLEA DE VENDAS"),
+    clientes: ss.getSheetByName("CLIENT_LIST"),
+    config: ss.getSheetByName("CONFIG")
+  };
+
+  const lerAba = (sheet) => {
+    if (!sheet) return [];
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    const headers = data[0].map(h => String(h).trim());
+    return data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => {
+        obj[h] = row[i] !== undefined ? row[i] : "";
+      });
+      return obj;
+    });
+  };
+
+  const usuariosBase = lerAba(abas.usuarios);
+  const budgetsNormalizados = lerAba(abas.orcamentos);
+  const salesBase = lerAba(abas.vendas);
+  const clientesBase = lerAba(abas.clientes);
+  const settings = abas.config ? lerAba(abas.config) : [];
+
+  return {
+    success: true,
+    usuariosBase,
+    budgetsNormalizados,
+    salesBase,
+    clientesBase,
+    settings,
+    totalUsuarios: usuariosBase.length,
+    totalOrcamentos: budgetsNormalizados.length,
+    totalVendas: salesBase.length,
+    totalClientes: clientesBase.length
+  };
 }
 
 // ===============================================================
@@ -1620,4 +1451,4 @@ function iniciarSistemaFDesign() {
     Logger.log("❌ Erro ao iniciar sistema: " + e);
     abrirLoginSistema();
   }
-}
+ }
