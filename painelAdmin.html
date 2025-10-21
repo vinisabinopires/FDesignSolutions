@@ -477,6 +477,73 @@
     }
 
     /* ========================================= */
+    /* BARRAS DE FILTRO */
+    /* ========================================= */
+    .filters-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: flex-end;
+    }
+
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 160px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .filter-select,
+    .filter-input {
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      color: #111827;
+    }
+
+    .filters-actions {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .btn-clear {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-clear:hover {
+      background: #e5e7eb;
+    }
+
+    .summary-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #4b5563;
+      font-weight: 500;
+    }
+
+    .summary-bar span {
+      background: #f3f4f6;
+      border-radius: 999px;
+      padding: 6px 12px;
+    }
+
+    /* ========================================= */
     /* UTILITÁRIOS */
     /* ========================================= */
     .loading {
@@ -647,6 +714,39 @@
       <h1>💼 Budgets & Quotes</h1>
       <div id="budgetsLoading" class="loading" data-default-message="Carregando orçamentos...">Carregando orçamentos...</div>
       <div id="budgetsContent" style="display:none;">
+        <div class="filters-bar" id="budgetFiltersBar">
+          <div class="filter-item">
+            <label class="filter-label" for="budgetFilterClient">Cliente</label>
+            <select id="budgetFilterClient" class="filter-select"></select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="budgetFilterResponsible">Responsável</label>
+            <select id="budgetFilterResponsible" class="filter-select"></select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="budgetFilterType">Tipo</label>
+            <select id="budgetFilterType" class="filter-select"></select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="budgetFilterStatus">Status</label>
+            <select id="budgetFilterStatus" class="filter-select"></select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="budgetFilterStart">Início</label>
+            <input id="budgetFilterStart" class="filter-input" type="date">
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="budgetFilterEnd">Fim</label>
+            <input id="budgetFilterEnd" class="filter-input" type="date">
+          </div>
+          <div class="filters-actions">
+            <button class="btn btn-clear" type="button" onclick="resetBudgetFilters()">Limpar</button>
+          </div>
+        </div>
+        <div class="summary-bar" id="budgetSummary">
+          <span>Total de orçamentos: 0</span>
+          <span>Somatório: $0.00</span>
+        </div>
         <div class="data-table">
           <table>
             <thead>
@@ -673,6 +773,36 @@
       <h1>💰 Sales History</h1>
       <div id="salesLoading" class="loading" data-default-message="Carregando vendas...">Carregando vendas...</div>
       <div id="salesContent" style="display:none;">
+        <div class="filters-bar" id="salesFiltersBar">
+          <div class="filter-item">
+            <label class="filter-label" for="salesFilterClient">Cliente</label>
+            <select id="salesFilterClient" class="filter-select"></select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="salesFilterVendor">Vendedor</label>
+            <select id="salesFilterVendor" class="filter-select"></select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="salesFilterType">Tipo</label>
+            <select id="salesFilterType" class="filter-select"></select>
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="salesFilterStart">Início</label>
+            <input id="salesFilterStart" class="filter-input" type="date">
+          </div>
+          <div class="filter-item">
+            <label class="filter-label" for="salesFilterEnd">Fim</label>
+            <input id="salesFilterEnd" class="filter-input" type="date">
+          </div>
+          <div class="filters-actions">
+            <button class="btn btn-clear" type="button" onclick="resetSalesFilters()">Limpar</button>
+          </div>
+        </div>
+        <div class="summary-bar" id="salesSummary">
+          <span>Total de vendas: 0</span>
+          <span>Somatório: $0.00</span>
+          <span>Comissões: $0.00</span>
+        </div>
         <div class="data-table">
           <table>
             <thead>
@@ -717,6 +847,130 @@
     // =========================================
     let adminData = null;
     let refreshButton = null;
+    let filteredBudgets = [];
+    let filteredSales = [];
+    let budgetFiltersInitialized = false;
+    let salesFiltersInitialized = false;
+
+    const FALLBACK_TEXT = '–';
+
+    const EMPTY_METRICS = Object.freeze({
+      communication: { messages: 0, calls: 0, total: 0 },
+      effectiveness: { respPos: 0, respNeg: 0, prr: 0 },
+      conversion: { totalBudgets: 0, converted: 0, rate: 0 },
+      financial: {
+        avgSaleValue: 0,
+        totalRevenue: 0,
+        totalCommission: 0,
+        profitabilityPerHour: 0
+      },
+      derived: { oei: 0, ce: 0, hp: 0, prr: 0, nep: 0 }
+    });
+
+    function normalizeMetrics(metrics) {
+      const base = JSON.parse(JSON.stringify(EMPTY_METRICS));
+      if (!metrics || typeof metrics !== 'object') {
+        return base;
+      }
+      return {
+        communication: { ...base.communication, ...(metrics.communication || {}) },
+        effectiveness: { ...base.effectiveness, ...(metrics.effectiveness || {}) },
+        conversion: { ...base.conversion, ...(metrics.conversion || {}) },
+        financial: { ...base.financial, ...(metrics.financial || {}) },
+        derived: { ...base.derived, ...(metrics.derived || {}) }
+      };
+    }
+
+    function cloneMetrics(metrics) {
+      return normalizeMetrics(metrics || {});
+    }
+
+    function getSafeId(value, prefix = 'id') {
+      const base = value ? String(value) : `${prefix}-${Math.random().toString(36).slice(2)}`;
+      return `${prefix}-${base.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+    }
+
+    function formatCurrency(value) {
+      const numero = Number(value);
+      return Number.isFinite(numero) ? `$${numero.toFixed(2)}` : '$0.00';
+    }
+
+    function formatPercent(value) {
+      const numero = Number(value);
+      return Number.isFinite(numero) ? `${numero.toFixed(1)}%` : '0%';
+    }
+
+    function formatPercentFromDecimal(value) {
+      const numero = Number(value);
+      if (!Number.isFinite(numero)) {
+        return '0%';
+      }
+      if (numero > 1) {
+        return `${numero.toFixed(0)}%`;
+      }
+      return `${(numero * 100).toFixed(0)}%`;
+    }
+
+    function formatNumber(value) {
+      const numero = Number(value);
+      return Number.isFinite(numero) ? numero.toString() : '0';
+    }
+
+    function formatText(value) {
+      return value ? String(value) : FALLBACK_TEXT;
+    }
+
+    function getMetricLevel(value, goodThreshold, warningThreshold) {
+      const numero = Number(value);
+      if (!Number.isFinite(numero)) {
+        return '';
+      }
+      if (numero >= goodThreshold) {
+        return 'good';
+      }
+      if (numero >= warningThreshold) {
+        return 'warning';
+      }
+      return 'critical';
+    }
+
+    function buildDateRange(start, end) {
+      const startDate = start ? new Date(`${start}T00:00:00`) : null;
+      const endDate = end ? new Date(`${end}T23:59:59`) : null;
+      return {
+        startDate: startDate && !isNaN(startDate.getTime()) ? startDate : null,
+        endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null
+      };
+    }
+
+    function getDateFromRecord(record, isoKey, textKey) {
+      if (!record) {
+        return null;
+      }
+      if (record[isoKey]) {
+        const dataIso = new Date(record[isoKey]);
+        if (!isNaN(dataIso.getTime())) {
+          return dataIso;
+        }
+      }
+      const texto = record[textKey];
+      if (texto && texto.includes('/')) {
+        const partes = texto.split('/');
+        if (partes.length === 3) {
+          const [dia, mes, ano] = partes.map(p => parseInt(p, 10));
+          const dataTexto = new Date(ano, mes - 1, dia);
+          if (!isNaN(dataTexto.getTime())) {
+            return dataTexto;
+          }
+        }
+      }
+      return null;
+    }
+
+    function deepClone(object) {
+      return JSON.parse(JSON.stringify(object || {}));
+    }
+
     // Mapeia os elementos de loading/conteúdo para alternar entre estados de carregamento e erro
     const sectionLoadingMap = [
       { loadingId: 'reportsLoading', contentId: 'reportsContent' },
@@ -806,14 +1060,32 @@
       }
 
       setLoadingState(false);
-      const data = response.data || {};
       adminData = {
-        reports: data.reports || {},
-        users: Array.isArray(data.users) ? data.users : [],
-        budgets: Array.isArray(data.budgets) ? data.budgets : [],
-        sales: Array.isArray(data.sales) ? data.sales : [],
-        settings: data.settings || {}
+        reports: response.reports || {},
+        settings: response.settings || {},
+        budgets: Array.isArray(response.budgets) ? response.budgets : [],
+        sales: Array.isArray(response.sales) ? response.sales : [],
+        users: Array.isArray(response.users)
+          ? response.users.map((user, index) => {
+              const normalized = cloneMetrics(user.metrics);
+              const safeId = getSafeId(user.id || user.email || index, 'user');
+              return {
+                ...user,
+                metrics: deepClone(normalized),
+                _safeId: safeId,
+                _index: index,
+                _baselineMetrics: deepClone(normalized),
+                _metricsCurrent: deepClone(normalized),
+                _lastFilter: null
+              };
+            })
+          : []
       };
+
+      filteredBudgets = [...adminData.budgets];
+      filteredSales = [...adminData.sales];
+      budgetFiltersInitialized = false;
+      salesFiltersInitialized = false;
 
       try {
         renderReports(adminData.reports);
@@ -903,12 +1175,14 @@
     // 👥 RENDERIZAÇÃO: USERS (COM ACCORDION)
     // =========================================
     function renderUsers(users) {
-      document.getElementById('usersLoading').style.display = 'none';
-      document.getElementById('usersContent').style.display = 'block';
+      const loading = document.getElementById('usersLoading');
+      const content = document.getElementById('usersContent');
+      if (loading) loading.style.display = 'none';
+      if (content) content.style.display = 'block';
       const tbody = document.getElementById('usersTableBody');
       tbody.innerHTML = '';
 
-      const listaUsuarios = Array.isArray(users) ? users : []; // Evita TypeError quando o backend não envia a lista
+      const listaUsuarios = Array.isArray(users) ? users : [];
 
       if (listaUsuarios.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum usuário cadastrado</div></td></tr>';
@@ -916,93 +1190,107 @@
       }
 
       listaUsuarios.forEach((user, index) => {
-        const statusClass = user.status === 'Ativo' ? 'status-ativo' : 'status-inativo';
-        const metrics = user.metrics || {};
-        const financial = metrics.financial || {};
-        const conversion = metrics.conversion || {};
-        const comissaoPadrao = Number(user.comissao || 0);
+        user._index = index;
+        user._safeId = user._safeId || getSafeId(user.id || user.email || index, 'user');
 
-        // Linha principal
+        const baseMetrics = cloneMetrics(user.metrics);
+        user.metrics = deepClone(baseMetrics);
+
+        if (!user._baselineMetrics) {
+          user._baselineMetrics = deepClone(baseMetrics);
+        }
+
+        user._metricsCurrent = user._metricsCurrent
+          ? cloneMetrics(user._metricsCurrent)
+          : deepClone(baseMetrics);
+
+        const metrics = normalizeMetrics(user._metricsCurrent);
+        user._metricsCurrent = metrics;
+
+        const statusClass = String(user.status || '').toLowerCase() === 'ativo' ? 'status-ativo' : 'status-inativo';
+
         const mainRow = `
-          <tr class="main-row" onclick="toggleUserDetails(${index})">
-            <td><span class="expand-icon" id="expand-user-${index}">▶</span></td>
-            <td><strong>${user.nome}</strong></td>
-            <td>${user.tipo}</td>
-            <td><span class="status-badge ${statusClass}">${user.status}</span></td>
-            <td>$${financial.totalRevenue ? financial.totalRevenue.toFixed(2) : '0.00'}</td>
-            <td>${conversion.rate ? conversion.rate.toFixed(1) : '0'}%</td>
-            <td>${(comissaoPadrao * 100).toFixed(0)}%</td>
+          <tr class="main-row" id="user-row-${user._safeId}" data-user-id="${user.id}" onclick="toggleUserDetails('${user._safeId}')">
+            <td><span class="expand-icon" id="expand-user-${user._safeId}">▶</span></td>
+            <td><strong>${formatText(user.nome)}</strong></td>
+            <td>${formatText(user.tipo)}</td>
+            <td><span class="status-badge ${statusClass}">${formatText(user.status)}</span></td>
+            <td id="user-${user._safeId}-kpi-totalRevenue">${formatCurrency(metrics.financial.totalRevenue)}</td>
+            <td id="user-${user._safeId}-kpi-conversion">${formatPercent(metrics.conversion.rate)}</td>
+            <td>${formatPercentFromDecimal(user.comissao)}</td>
           </tr>
         `;
-        
-        // Linha de detalhes (accordion)
+
         const detailsRow = `
-          <tr class="details-row" id="details-user-${index}">
+          <tr class="details-row" id="details-user-${user._safeId}">
             <td colspan="7">
-              <div class="details-content">
+              <div class="details-content" id="details-content-${user._safeId}">
                 ${renderUserDetails(user)}
               </div>
             </td>
           </tr>
         `;
-        
-        tbody.innerHTML += mainRow + detailsRow;
+
+        tbody.insertAdjacentHTML('beforeend', mainRow + detailsRow);
       });
     }
 
     function renderUserDetails(user) {
-  const m = user.metrics || {};
-  const comm = m.communication || {};
-  const eff = m.effectiveness || {};
-  const conv = m.conversion || {};
-  const fin = m.financial || {};
-  const der = m.derived || {};
-  const comissaoPadrao = Number(user.comissao || 0);
-  
-  return `
-    <div class="detail-card">
-      <div class="detail-header">📊 Análise Completa: ${user.nome}</div>
+      const metrics = normalizeMetrics(user._metricsCurrent || user.metrics);
+      user._metricsCurrent = metrics;
+      const safeId = user._safeId;
+      const filterStart = user._lastFilter?.start || '';
+      const filterEnd = user._lastFilter?.end || '';
+      const comm = metrics.communication;
+      const eff = metrics.effectiveness;
+      const conv = metrics.conversion;
+      const fin = metrics.financial;
+      const der = metrics.derived;
+      const prrClass = getMetricLevel(eff.prr, 70, 40);
+      const convClass = getMetricLevel(conv.rate, 30, 15);
+      const ceClass = getMetricLevel(der.ce, 30, 15);
 
-      <!-- 🔽 Filtro de período adicionado -->
-      <div class="filters" style="margin: 10px 0; display: flex; align-items: center; gap: 8px;">
-        <label>📅 Período:</label>
-        <input type="date" id="startDateUser-${user.id}" onchange="applyUserFilter('${user.id}')">
-        <input type="date" id="endDateUser-${user.id}" onchange="applyUserFilter('${user.id}')">
-      </div>
-      <!-- 🔼 Filtro de período adicionado -->
+      return `
+        <div class="detail-card" data-user="${formatText(user.id)}">
+          <div class="detail-header">📊 Análise Completa: ${formatText(user.nome)}</div>
+          <div class="filters" style="margin: 10px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <label>📅 Período:</label>
+            <input type="date" id="startDateUser-${safeId}" value="${filterStart}" onchange="applyUserFilter('${user.id}')">
+            <input type="date" id="endDateUser-${safeId}" value="${filterEnd}" onchange="applyUserFilter('${user.id}')">
+          </div>
 
-      <div class="detail-grid">
-        <div class="detail-item">
-          <div class="detail-label">ID</div>
-          <div class="detail-value">${user.id}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Email</div>
-          <div class="detail-value">${user.email || '-'}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Telefone</div>
-          <div class="detail-value">${user.telefone || '-'}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Comissão Padrão</div>
-          <div class="detail-value">${(comissaoPadrao * 100).toFixed(0)}%</div>
-        </div>
-      </div>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <div class="detail-label">ID</div>
+              <div class="detail-value">${formatText(user.id)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Email</div>
+              <div class="detail-value">${formatText(user.email)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Telefone</div>
+              <div class="detail-value">${formatText(user.telefone)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Comissão Padrão</div>
+              <div class="detail-value">${formatPercentFromDecimal(user.comissao)}</div>
+            </div>
+          </div>
 
           <div class="detail-header" style="margin-top:24px;">💬 Comunicação</div>
           <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">Mensagens</div>
-              <div class="metric-value">${comm.messages || 0}</div>
+              <div class="metric-value">${formatNumber(comm.messages)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Ligações</div>
-              <div class="metric-value">${comm.calls || 0}</div>
+              <div class="metric-value">${formatNumber(comm.calls)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Total Contatos</div>
-              <div class="metric-value">${comm.total || 0}</div>
+              <div class="metric-value">${formatNumber(comm.total)}</div>
             </div>
           </div>
 
@@ -1010,15 +1298,15 @@
           <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">Resp. Positivas</div>
-              <div class="metric-value good">${eff.respPos || 0}</div>
+              <div class="metric-value good">${formatNumber(eff.respPos)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Resp. Negativas</div>
-              <div class="metric-value critical">${eff.respNeg || 0}</div>
+              <div class="metric-value critical">${formatNumber(eff.respNeg)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">PRR (%)</div>
-              <div class="metric-value ${eff.prr > 70 ? 'good' : eff.prr > 40 ? 'warning' : 'critical'}">${eff.prr ? eff.prr.toFixed(1) : '0'}%</div>
+              <div class="metric-value ${prrClass}">${formatPercent(eff.prr)}</div>
             </div>
           </div>
 
@@ -1026,15 +1314,15 @@
           <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">Orçamentos</div>
-              <div class="metric-value">${conv.totalBudgets || 0}</div>
+              <div class="metric-value">${formatNumber(conv.totalBudgets)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Convertidos</div>
-              <div class="metric-value good">${conv.converted || 0}</div>
+              <div class="metric-value good">${formatNumber(conv.converted)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Taxa (%)</div>
-              <div class="metric-value ${conv.rate > 30 ? 'good' : conv.rate > 15 ? 'warning' : 'critical'}">${conv.rate ? conv.rate.toFixed(1) : '0'}%</div>
+              <div class="metric-value ${convClass}">${formatPercent(conv.rate)}</div>
             </div>
           </div>
 
@@ -1042,19 +1330,19 @@
           <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">Receita Total</div>
-              <div class="metric-value good">$${fin.totalRevenue ? fin.totalRevenue.toFixed(2) : '0.00'}</div>
+              <div class="metric-value good">${formatCurrency(fin.totalRevenue)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Comissão Total</div>
-              <div class="metric-value">$${fin.totalCommission ? fin.totalCommission.toFixed(2) : '0.00'}</div>
+              <div class="metric-value">${formatCurrency(fin.totalCommission)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Valor Médio</div>
-              <div class="metric-value">$${fin.avgSaleValue ? fin.avgSaleValue.toFixed(2) : '0.00'}</div>
+              <div class="metric-value">${formatCurrency(fin.avgSaleValue)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Lucro/Hora</div>
-              <div class="metric-value">$${fin.profitabilityPerHour ? fin.profitabilityPerHour.toFixed(2) : '0.00'}</div>
+              <div class="metric-value">${formatCurrency(fin.profitabilityPerHour)}</div>
             </div>
           </div>
 
@@ -1062,19 +1350,19 @@
           <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">OEI</div>
-              <div class="metric-value ${der.oei > 5 ? 'good' : der.oei > 2 ? 'warning' : 'critical'}">${der.oei ? der.oei.toFixed(2) : '0.00'}</div>
+              <div class="metric-value ${getMetricLevel(der.oei, 5, 2)}">${Number(der.oei || 0).toFixed(2)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">CE (%)</div>
-              <div class="metric-value ${der.ce > 30 ? 'good' : der.ce > 15 ? 'warning' : 'critical'}">${der.ce ? der.ce.toFixed(1) : '0'}%</div>
+              <div class="metric-value ${ceClass}">${formatPercent(der.ce)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">HP ($/h)</div>
-              <div class="metric-value">$${der.hp ? der.hp.toFixed(2) : '0.00'}</div>
+              <div class="metric-value">${formatCurrency(der.hp)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">NEP</div>
-              <div class="metric-value good">$${der.nep ? parseFloat(der.nep).toFixed(2) : '0.00'}</div>
+              <div class="metric-value good">${formatCurrency(der.nep)}</div>
             </div>
           </div>
 
@@ -1087,11 +1375,14 @@
       `;
     }
 
-    function toggleUserDetails(index) {
-      const detailsRow = document.getElementById(`details-user-${index}`);
-      const expandIcon = document.getElementById(`expand-user-${index}`);
-      const mainRow = detailsRow.previousElementSibling;
-      
+    function toggleUserDetails(safeId) {
+      const detailsRow = document.getElementById(`details-user-${safeId}`);
+      const expandIcon = document.getElementById(`expand-user-${safeId}`);
+      const mainRow = document.getElementById(`user-row-${safeId}`);
+      if (!detailsRow || !expandIcon || !mainRow) {
+        return;
+      }
+
       if (detailsRow.classList.contains('show')) {
         detailsRow.classList.remove('show');
         expandIcon.classList.remove('expanded');
@@ -1103,39 +1394,238 @@
       }
     }
 
-    // =========================================
-    // 💼 RENDERIZAÇÃO: BUDGETS (COM ACCORDION)
-    // =========================================
-    function renderBudgets(budgets) {
-      document.getElementById('budgetsLoading').style.display = 'none';
-      document.getElementById('budgetsContent').style.display = 'block';
-      const tbody = document.getElementById('budgetsTableBody');
-      tbody.innerHTML = '';
-
-      const listaOrcamentos = Array.isArray(budgets) ? budgets : []; // Protege contra respostas sem dados de orçamento
-
-      if (listaOrcamentos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum orçamento cadastrado</div></td></tr>';
+    function applyUserFilter(userId) {
+      if (!adminData || !Array.isArray(adminData.users)) {
         return;
       }
 
-      listaOrcamentos.forEach((budget, index) => {
+      const user = adminData.users.find(u => u.id === userId);
+      if (!user) {
+        return;
+      }
+
+      const safeId = user._safeId;
+      const startInput = document.getElementById(`startDateUser-${safeId}`);
+      const endInput = document.getElementById(`endDateUser-${safeId}`);
+      const startValue = startInput ? startInput.value : '';
+      const endValue = endInput ? endInput.value : '';
+
+      user._lastFilter = { start: startValue, end: endValue };
+
+      if (!startValue && !endValue) {
+        user._metricsCurrent = deepClone(user._baselineMetrics);
+        updateUserDisplay(user);
+        return;
+      }
+
+      const { startDate, endDate } = buildDateRange(startValue, endValue);
+      const budgets = filterBudgetsByUser(user.id, startDate, endDate);
+      const sales = filterSalesByUser(user.id, startDate, endDate);
+
+      user._metricsCurrent = calculateUserMetricsClientSide(user, budgets, sales);
+      updateUserDisplay(user);
+    }
+
+    function updateUserDisplay(user) {
+      if (!user) return;
+      const metrics = normalizeMetrics(user._metricsCurrent);
+      user._metricsCurrent = metrics;
+
+      const totalRevenueCell = document.getElementById(`user-${user._safeId}-kpi-totalRevenue`);
+      if (totalRevenueCell) {
+        totalRevenueCell.textContent = formatCurrency(metrics.financial.totalRevenue);
+      }
+
+      const conversionCell = document.getElementById(`user-${user._safeId}-kpi-conversion`);
+      if (conversionCell) {
+        conversionCell.textContent = formatPercent(metrics.conversion.rate);
+      }
+
+      const detailsContent = document.getElementById(`details-content-${user._safeId}`);
+      if (detailsContent) {
+        detailsContent.innerHTML = renderUserDetails(user);
+        const startInput = document.getElementById(`startDateUser-${user._safeId}`);
+        const endInput = document.getElementById(`endDateUser-${user._safeId}`);
+        if (startInput && user._lastFilter?.start) {
+          startInput.value = user._lastFilter.start;
+        }
+        if (endInput && user._lastFilter?.end) {
+          endInput.value = user._lastFilter.end;
+        }
+      }
+    }
+
+    function filterBudgetsByUser(userId, startDate, endDate) {
+      const lista = Array.isArray(adminData?.budgets) ? adminData.budgets : [];
+      return lista.filter(budget => {
+        const responsavel = String(budget.vendedorId || budget.criadoPor || '').trim();
+        if (userId && responsavel !== userId) {
+          return false;
+        }
+        const data = getDateFromRecord(budget, 'dataCriacaoISO', 'dataCriacao');
+        if (startDate && (!data || data < startDate)) {
+          return false;
+        }
+        if (endDate && (!data || data > endDate)) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function filterSalesByUser(userId, startDate, endDate) {
+      const lista = Array.isArray(adminData?.sales) ? adminData.sales : [];
+      return lista.filter(sale => {
+        const vendedor = String(sale.vendedorId || '').trim();
+        if (userId && vendedor !== userId) {
+          return false;
+        }
+        const data = getDateFromRecord(sale, 'dataISO', 'data');
+        if (startDate && (!data || data < startDate)) {
+          return false;
+        }
+        if (endDate && (!data || data > endDate)) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function calculateUserMetricsClientSide(user, budgets, sales) {
+      const metricas = normalizeMetrics({});
+      const mensagens = budgets.reduce((sum, b) => sum + Number(b.mensagens || 0), 0);
+      const ligacoes = budgets.reduce((sum, b) => sum + Number(b.ligacoes || 0), 0);
+      metricas.communication.messages = mensagens;
+      metricas.communication.calls = ligacoes;
+      metricas.communication.total = mensagens + ligacoes;
+
+      metricas.effectiveness.respPos = budgets.reduce((sum, b) => sum + Number(b.respPos || 0), 0);
+      metricas.effectiveness.respNeg = budgets.reduce((sum, b) => sum + Number(b.respNeg || 0), 0);
+      const totalRespostas = metricas.effectiveness.respPos + metricas.effectiveness.respNeg;
+      metricas.effectiveness.prr = totalRespostas > 0 ? Number(((metricas.effectiveness.respPos / totalRespostas) * 100).toFixed(1)) : 0;
+
+      metricas.conversion.totalBudgets = budgets.length;
+      const statusFechado = ['fechado', 'fechado (venda)', 'fechado (vendas)'];
+      const convertidos = budgets.filter(b => statusFechado.includes(String(b.status || '').toLowerCase())).length;
+      metricas.conversion.converted = convertidos;
+      metricas.conversion.rate = metricas.conversion.totalBudgets > 0 ? Number(((convertidos / metricas.conversion.totalBudgets) * 100).toFixed(1)) : 0;
+
+      const totalVendas = sales.reduce((sum, s) => sum + Number(s.valor || 0), 0);
+      const totalComissao = sales.reduce((sum, s) => sum + Number(s.comissao || 0), 0);
+      metricas.financial.totalRevenue = Number(totalVendas.toFixed(2));
+      metricas.financial.totalCommission = Number(totalComissao.toFixed(2));
+      metricas.financial.avgSaleValue = sales.length > 0 ? Number((metricas.financial.totalRevenue / sales.length).toFixed(2)) : 0;
+      metricas.financial.profitabilityPerHour = Number(((metricas.financial.totalRevenue - metricas.financial.totalCommission) / 160 || 0).toFixed(2));
+
+      metricas.derived.oei = metricas.conversion.totalBudgets > 0 ? Number((metricas.communication.total / metricas.conversion.totalBudgets).toFixed(2)) : 0;
+      metricas.derived.ce = metricas.conversion.rate;
+      metricas.derived.hp = metricas.financial.profitabilityPerHour;
+      metricas.derived.prr = metricas.effectiveness.prr;
+      metricas.derived.nep = Number((metricas.financial.totalRevenue - metricas.financial.totalCommission).toFixed(2));
+
+      return metricas;
+    }
+
+    // =========================================
+    // 💼 RENDERIZAÇÃO: BUDGETS (COM ACCORDION)
+    // =========================================
+    function extractUniqueValues(collection, extractor) {
+      const set = new Set();
+      (collection || []).forEach(item => {
+        const value = extractor(item);
+        if (value) {
+          set.add(value);
+        }
+      });
+      return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    }
+
+    function populateFilterOptions(elementId, values) {
+      const element = document.getElementById(elementId);
+      if (!element) {
+        return;
+      }
+
+      const existingValue = element.value;
+      element.innerHTML = '';
+
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Todos';
+      element.appendChild(defaultOption);
+
+      values.forEach(value => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        element.appendChild(option);
+      });
+
+      if (values.includes(existingValue)) {
+        element.value = existingValue;
+      }
+    }
+
+    function renderBudgets(budgets) {
+      const loading = document.getElementById('budgetsLoading');
+      const content = document.getElementById('budgetsContent');
+      if (loading) loading.style.display = 'none';
+      if (content) content.style.display = 'block';
+
+      filteredBudgets = Array.isArray(budgets) ? [...budgets] : [];
+      setupBudgetFilters(adminData.budgets);
+      applyBudgetFilter();
+    }
+
+    function setupBudgetFilters(lista) {
+      const collection = Array.isArray(lista) ? lista : [];
+      populateFilterOptions('budgetFilterClient', extractUniqueValues(collection, item => formatText(item.cliente)));
+      populateFilterOptions('budgetFilterResponsible', extractUniqueValues(collection, item => formatText(item.responsavelNome || item.criadoPor)));
+      populateFilterOptions('budgetFilterType', extractUniqueValues(collection, item => formatText(item.tipo || item.origem)));
+      populateFilterOptions('budgetFilterStatus', extractUniqueValues(collection, item => formatText(item.status)));
+
+      if (!budgetFiltersInitialized) {
+        ['budgetFilterClient', 'budgetFilterResponsible', 'budgetFilterType', 'budgetFilterStatus', 'budgetFilterStart', 'budgetFilterEnd'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.addEventListener('change', () => applyBudgetFilter());
+          }
+        });
+        budgetFiltersInitialized = true;
+      }
+    }
+
+    function renderBudgetTable(lista) {
+      const tbody = document.getElementById('budgetsTableBody');
+      if (!tbody) return;
+
+      if (!Array.isArray(lista) || lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum orçamento encontrado</div></td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      lista.forEach((budget, index) => {
+        const safeId = budget._safeId || getSafeId(budget.id || index, 'budget');
+        budget._safeId = safeId;
         const indicatorClass = `indicator-${budget.corStatus || 'gray'}`;
-        
+        const tipo = formatText(budget.tipo || budget.origem);
+        const responsavel = formatText(budget.responsavelNome || budget.criadoPor);
+
         const mainRow = `
-          <tr class="main-row" onclick="toggleBudgetDetails(${index})">
-            <td><span class="expand-icon" id="expand-budget-${index}">▶</span></td>
-            <td><span class="indicator ${indicatorClass}"></span>${budget.dataCriacao}</td>
-            <td>${budget.origem}</td>
-            <td>${budget.cliente}</td>
-            <td>$${budget.valor.toFixed(2)}</td>
-            <td>${budget.status}</td>
-            <td>${budget.criadoPor}</td>
+          <tr class="main-row" id="budget-row-${safeId}" onclick="toggleBudgetDetails('${safeId}')">
+            <td><span class="expand-icon" id="expand-budget-${safeId}">▶</span></td>
+            <td><span class="indicator ${indicatorClass}"></span>${formatText(budget.dataCriacao)}</td>
+            <td>${tipo}</td>
+            <td>${formatText(budget.cliente)}</td>
+            <td>${formatCurrency(budget.valor)}</td>
+            <td>${formatText(budget.status)}</td>
+            <td>${responsavel}</td>
           </tr>
         `;
-        
+
         const detailsRow = `
-          <tr class="details-row" id="details-budget-${index}">
+          <tr class="details-row" id="details-budget-${safeId}">
             <td colspan="7">
               <div class="details-content">
                 ${renderBudgetDetails(budget)}
@@ -1143,35 +1633,85 @@
             </td>
           </tr>
         `;
-        
-        tbody.innerHTML += mainRow + detailsRow;
+
+        tbody.insertAdjacentHTML('beforeend', mainRow + detailsRow);
       });
     }
 
+    function updateBudgetSummary(lista) {
+      const summary = document.getElementById('budgetSummary');
+      if (!summary) return;
+      const total = Array.isArray(lista) ? lista.length : 0;
+      const somatorio = Array.isArray(lista) ? lista.reduce((sum, item) => sum + Number(item.valor || 0), 0) : 0;
+      summary.innerHTML = `
+        <span>Total de orçamentos: ${total}</span>
+        <span>Somatório: ${formatCurrency(somatorio)}</span>
+      `;
+    }
+
+    function applyBudgetFilter() {
+      const client = document.getElementById('budgetFilterClient')?.value || '';
+      const responsible = document.getElementById('budgetFilterResponsible')?.value || '';
+      const type = document.getElementById('budgetFilterType')?.value || '';
+      const status = document.getElementById('budgetFilterStatus')?.value || '';
+      const startValue = document.getElementById('budgetFilterStart')?.value || '';
+      const endValue = document.getElementById('budgetFilterEnd')?.value || '';
+      const { startDate, endDate } = buildDateRange(startValue, endValue);
+
+      filteredBudgets = (adminData && Array.isArray(adminData.budgets) ? adminData.budgets : []).filter(budget => {
+        const tipo = formatText(budget.tipo || budget.origem);
+        const responsavel = formatText(budget.responsavelNome || budget.criadoPor);
+        const cliente = formatText(budget.cliente);
+        const statusAtual = formatText(budget.status);
+        const dataRegistro = getDateFromRecord(budget, 'dataCriacaoISO', 'dataCriacao');
+
+        if (client && cliente !== client) return false;
+        if (responsible && responsavel !== responsible) return false;
+        if (type && tipo !== type) return false;
+        if (status && statusAtual !== status) return false;
+        if (startDate && (!dataRegistro || dataRegistro < startDate)) return false;
+        if (endDate && (!dataRegistro || dataRegistro > endDate)) return false;
+        return true;
+      });
+
+      renderBudgetTable(filteredBudgets);
+      updateBudgetSummary(filteredBudgets);
+    }
+
+    function resetBudgetFilters() {
+      ['budgetFilterClient', 'budgetFilterResponsible', 'budgetFilterType', 'budgetFilterStatus', 'budgetFilterStart', 'budgetFilterEnd'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.value = '';
+        }
+      });
+      applyBudgetFilter();
+    }
+
     function renderBudgetDetails(budget) {
-      const diasText = budget.diasDecorridos !== null ? `${budget.diasDecorridos} dias` : '-';
-      const probConv = budget.probabilidadeConversao || 0;
-      
+      const diasText = budget.diasDecorridos !== null && budget.diasDecorridos !== undefined ? `${budget.diasDecorridos} dias` : FALLBACK_TEXT;
+      const probConv = Number(budget.probabilidadeConversao || 0);
+
       return `
         <div class="detail-card">
-          <div class="detail-header">💼 Detalhes do Orçamento: ${budget.id}</div>
-          
+          <div class="detail-header">💼 Detalhes do Orçamento: ${formatText(budget.id)}</div>
+
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-label">Data Criação</div>
-              <div class="detail-value">${budget.dataCriacao}</div>
+              <div class="detail-value">${formatText(budget.dataCriacao)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Dias Decorridos</div>
               <div class="detail-value">${diasText}</div>
             </div>
             <div class="detail-item">
-              <div class="detail-label">Origem</div>
-              <div class="detail-value">${budget.origem}</div>
+              <div class="detail-label">Tipo</div>
+              <div class="detail-value">${formatText(budget.tipo || budget.origem)}</div>
             </div>
             <div class="detail-item">
-              <div class="detail-label">Criado Por</div>
-              <div class="detail-value">${budget.criadoPor}</div>
+              <div class="detail-label">Responsável</div>
+              <div class="detail-value">${formatText(budget.responsavelNome || budget.criadoPor)}</div>
             </div>
           </div>
 
@@ -1179,15 +1719,15 @@
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-label">Nome</div>
-              <div class="detail-value">${budget.cliente}</div>
+              <div class="detail-value">${formatText(budget.cliente)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Email</div>
-              <div class="detail-value">${budget.email || '-'}</div>
+              <div class="detail-value">${formatText(budget.email)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Telefone</div>
-              <div class="detail-value">${budget.telefone || '-'}</div>
+              <div class="detail-value">${formatText(budget.telefone)}</div>
             </div>
           </div>
 
@@ -1195,64 +1735,57 @@
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-label">Descrição</div>
-              <div class="detail-value">${budget.descricao || '-'}</div>
+              <div class="detail-value">${formatText(budget.descricao)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Valor Estimado</div>
-              <div class="detail-value">$${budget.valor.toFixed(2)}</div>
+              <div class="detail-value">${formatCurrency(budget.valor)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Status</div>
-              <div class="detail-value">${budget.status}</div>
+              <div class="detail-value">${formatText(budget.status)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Último Contato</div>
-              <div class="detail-value">${budget.ultimoContato || '-'}</div>
+              <div class="detail-value">${formatText(budget.ultimoContato)}</div>
             </div>
           </div>
 
-          <div class="detail-header" style="margin-top:24px;">📞 Histórico de Comunicação</div>
+          <div class="detail-header" style="margin-top:24px;">📞 Comunicação</div>
           <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">Mensagens</div>
-              <div class="metric-value">${budget.mensagens || 0}</div>
+              <div class="metric-value">${formatNumber(budget.mensagens)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Ligações</div>
-              <div class="metric-value">${budget.ligacoes || 0}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Resp. Positivas</div>
-              <div class="metric-value good">${budget.respPos || 0}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Resp. Negativas</div>
-              <div class="metric-value critical">${budget.respNeg || 0}</div>
+              <div class="metric-value">${formatNumber(budget.ligacoes)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Prob. Conversão</div>
-              <div class="metric-value ${probConv > 70 ? 'good' : probConv > 40 ? 'warning' : 'critical'}">${probConv}%</div>
+              <div class="metric-value">${formatPercent(probConv)}</div>
             </div>
           </div>
 
           ${budget.motivoPerda ? `
           <div class="detail-header" style="margin-top:24px;">❌ Motivo da Perda</div>
-          <div class="detail-value" style="padding:12px;background:#fef2f2;border-radius:6px;color:#991b1b;">${budget.motivoPerda}</div>
+          <div class="detail-value" style="padding:12px;background:#fef2f2;border-radius:6px;color:#991b1b;">${formatText(budget.motivoPerda)}</div>
           ` : ''}
 
           ${budget.obs ? `
           <div class="detail-header" style="margin-top:24px;">📝 Observações</div>
-          <div class="detail-value" style="padding:12px;background:#f9fafb;border-radius:6px;">${budget.obs}</div>
+          <div class="detail-value" style="padding:12px;background:#f9fafb;border-radius:6px;">${formatText(budget.obs)}</div>
           ` : ''}
         </div>
       `;
     }
 
-    function toggleBudgetDetails(index) {
-      const detailsRow = document.getElementById(`details-budget-${index}`);
-      const expandIcon = document.getElementById(`expand-budget-${index}`);
-      const mainRow = detailsRow.previousElementSibling;
-      
+    function toggleBudgetDetails(safeId) {
+      const detailsRow = document.getElementById(`details-budget-${safeId}`);
+      const expandIcon = document.getElementById(`expand-budget-${safeId}`);
+      const mainRow = document.getElementById(`budget-row-${safeId}`);
+      if (!detailsRow || !expandIcon || !mainRow) return;
+
       if (detailsRow.classList.contains('show')) {
         detailsRow.classList.remove('show');
         expandIcon.classList.remove('expanded');
@@ -1268,33 +1801,61 @@
     // 💰 RENDERIZAÇÃO: SALES (COM ACCORDION)
     // =========================================
     function renderSales(sales) {
-      document.getElementById('salesLoading').style.display = 'none';
-      document.getElementById('salesContent').style.display = 'block';
+      const loading = document.getElementById('salesLoading');
+      const content = document.getElementById('salesContent');
+      if (loading) loading.style.display = 'none';
+      if (content) content.style.display = 'block';
+
+      filteredSales = Array.isArray(sales) ? [...sales] : [];
+      setupSalesFilters(adminData.sales);
+      applySalesFilter();
+    }
+
+    function setupSalesFilters(lista) {
+      const collection = Array.isArray(lista) ? lista : [];
+      populateFilterOptions('salesFilterClient', extractUniqueValues(collection, item => formatText(item.cliente)));
+      populateFilterOptions('salesFilterVendor', extractUniqueValues(collection, item => formatText(item.vendedorNome || item.vendedorId)));
+      populateFilterOptions('salesFilterType', extractUniqueValues(collection, item => formatText(item.tipo)));
+
+      if (!salesFiltersInitialized) {
+        ['salesFilterClient', 'salesFilterVendor', 'salesFilterType', 'salesFilterStart', 'salesFilterEnd'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.addEventListener('change', () => applySalesFilter());
+          }
+        });
+        salesFiltersInitialized = true;
+      }
+    }
+
+    function renderSalesTable(lista) {
       const tbody = document.getElementById('salesTableBody');
-      tbody.innerHTML = '';
+      if (!tbody) return;
 
-      const listaVendas = Array.isArray(sales) ? sales : []; // Evita quebra quando vendas não são carregadas
-
-      if (listaVendas.length === 0) {
+      if (!Array.isArray(lista) || lista.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhuma venda registrada</div></td></tr>';
         return;
       }
 
-      listaVendas.forEach((sale, index) => {
+      tbody.innerHTML = '';
+      lista.forEach((sale, index) => {
+        const safeId = sale._safeId || getSafeId(sale.invoice || sale.id || index, 'sale');
+        sale._safeId = safeId;
+
         const mainRow = `
-          <tr class="main-row" onclick="toggleSaleDetails(${index})">
-            <td><span class="expand-icon" id="expand-sale-${index}">▶</span></td>
-            <td>${sale.data}</td>
-            <td>${sale.tipo}</td>
-            <td>${sale.cliente}</td>
-            <td>$${sale.valor.toFixed(2)}</td>
-            <td>$${sale.comissao.toFixed(2)}</td>
-            <td>${sale.vendedorId || '-'}</td>
+          <tr class="main-row" id="sale-row-${safeId}" onclick="toggleSaleDetails('${safeId}')">
+            <td><span class="expand-icon" id="expand-sale-${safeId}">▶</span></td>
+            <td>${formatText(sale.data)}</td>
+            <td>${formatText(sale.tipo)}</td>
+            <td>${formatText(sale.cliente)}</td>
+            <td>${formatCurrency(sale.valor)}</td>
+            <td>${formatCurrency(sale.comissao)}</td>
+            <td>${formatText(sale.vendedorNome || sale.vendedorId)}</td>
           </tr>
         `;
-        
+
         const detailsRow = `
-          <tr class="details-row" id="details-sale-${index}">
+          <tr class="details-row" id="details-sale-${safeId}">
             <td colspan="7">
               <div class="details-content">
                 ${renderSaleDetails(sale)}
@@ -1302,44 +1863,93 @@
             </td>
           </tr>
         `;
-        
-        tbody.innerHTML += mainRow + detailsRow;
+
+        tbody.insertAdjacentHTML('beforeend', mainRow + detailsRow);
       });
+    }
+
+    function updateSalesSummary(lista) {
+      const summary = document.getElementById('salesSummary');
+      if (!summary) return;
+      const total = Array.isArray(lista) ? lista.length : 0;
+      const totalValor = Array.isArray(lista) ? lista.reduce((sum, item) => sum + Number(item.valor || 0), 0) : 0;
+      const totalComissao = Array.isArray(lista) ? lista.reduce((sum, item) => sum + Number(item.comissao || 0), 0) : 0;
+      summary.innerHTML = `
+        <span>Total de vendas: ${total}</span>
+        <span>Somatório: ${formatCurrency(totalValor)}</span>
+        <span>Comissões: ${formatCurrency(totalComissao)}</span>
+      `;
+    }
+
+    function applySalesFilter() {
+      const client = document.getElementById('salesFilterClient')?.value || '';
+      const vendor = document.getElementById('salesFilterVendor')?.value || '';
+      const type = document.getElementById('salesFilterType')?.value || '';
+      const startValue = document.getElementById('salesFilterStart')?.value || '';
+      const endValue = document.getElementById('salesFilterEnd')?.value || '';
+      const { startDate, endDate } = buildDateRange(startValue, endValue);
+
+      filteredSales = (adminData && Array.isArray(adminData.sales) ? adminData.sales : []).filter(sale => {
+        const cliente = formatText(sale.cliente);
+        const vendedor = formatText(sale.vendedorNome || sale.vendedorId);
+        const tipo = formatText(sale.tipo);
+        const dataRegistro = getDateFromRecord(sale, 'dataISO', 'data');
+
+        if (client && cliente !== client) return false;
+        if (vendor && vendedor !== vendor) return false;
+        if (type && tipo !== type) return false;
+        if (startDate && (!dataRegistro || dataRegistro < startDate)) return false;
+        if (endDate && (!dataRegistro || dataRegistro > endDate)) return false;
+        return true;
+      });
+
+      renderSalesTable(filteredSales);
+      updateSalesSummary(filteredSales);
+    }
+
+    function resetSalesFilters() {
+      ['salesFilterClient', 'salesFilterVendor', 'salesFilterType', 'salesFilterStart', 'salesFilterEnd'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.value = '';
+        }
+      });
+      applySalesFilter();
     }
 
     function renderSaleDetails(sale) {
       return `
         <div class="detail-card">
           <div class="detail-header">💰 Detalhes da Venda</div>
-          
+
           <div class="detail-grid">
             <div class="detail-item">
               <div class="detail-label">Data</div>
-              <div class="detail-value">${sale.data}</div>
+              <div class="detail-value">${formatText(sale.data)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Tipo</div>
-              <div class="detail-value">${sale.tipo}</div>
+              <div class="detail-value">${formatText(sale.tipo)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Cliente</div>
-              <div class="detail-value">${sale.cliente}</div>
+              <div class="detail-value">${formatText(sale.cliente)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Empresa</div>
-              <div class="detail-value">${sale.empresa || '-'}</div>
+              <div class="detail-value">${formatText(sale.empresa)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Invoice</div>
-              <div class="detail-value">${sale.invoice}</div>
+              <div class="detail-value">${formatText(sale.invoice)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Produto</div>
-              <div class="detail-value">${sale.produto || '-'}</div>
+              <div class="detail-value">${formatText(sale.produto)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Criado Por</div>
-              <div class="detail-value">${sale.criadoPor || '-'}</div>
+              <div class="detail-value">${formatText(sale.criadoPor)}</div>
             </div>
           </div>
 
@@ -1347,63 +1957,57 @@
           <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">Valor Total</div>
-              <div class="metric-value good">$${sale.valor.toFixed(2)}</div>
+              <div class="metric-value good">${formatCurrency(sale.valor)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Comissão</div>
-              <div class="metric-value">$${sale.comissao.toFixed(2)}</div>
+              <div class="metric-value">${formatCurrency(sale.comissao)}</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Comissão (%)</div>
+              <div class="metric-value">${formatPercent(sale.comissaoPercentual)}</div>
             </div>
             <div class="metric-box">
               <div class="metric-label">Vendedor</div>
-              <div class="metric-value">${sale.vendedorId || '-'}</div>
+              <div class="metric-value">${formatText(sale.vendedorNome || sale.vendedorId)}</div>
             </div>
-            ${sale.tentativasContato ? `
+          </div>
+
+          ${sale.tentativasContato ? `
+          <div class="detail-header" style="margin-top:24px;">📞 Esforço Comercial</div>
+          <div class="metrics-grid">
             <div class="metric-box">
               <div class="metric-label">Tentativas</div>
-              <div class="metric-value">${sale.tentativasContato}</div>
+              <div class="metric-value">${formatNumber(sale.tentativasContato)}</div>
             </div>
-            ` : ''}
             ${sale.valorPorHora ? `
             <div class="metric-box">
               <div class="metric-label">Valor/Hora</div>
-              <div class="metric-value">$${sale.valorPorHora.toFixed(2)}</div>
+              <div class="metric-value">${formatCurrency(sale.valorPorHora)}</div>
             </div>
             ` : ''}
           </div>
+          ` : ''}
         </div>
       `;
     }
 
-    function toggleSaleDetails(index) {
-  const detailsRow = document.getElementById(`details-sale-${index}`);
-  const expandIcon = document.getElementById(`expand-sale-${index}`);
-  const mainRow = detailsRow.previousElementSibling;
-  
-  if (detailsRow.classList.contains('show')) {
-    detailsRow.classList.remove('show');
-    expandIcon.classList.remove('expanded');
-    mainRow.classList.remove('expanded');
-  } else {
-    detailsRow.classList.add('show');
-    expandIcon.classList.add('expanded');
-    mainRow.classList.add('expanded');
-  }
-}
+    function toggleSaleDetails(safeId) {
+      const detailsRow = document.getElementById(`details-sale-${safeId}`);
+      const expandIcon = document.getElementById(`expand-sale-${safeId}`);
+      const mainRow = document.getElementById(`sale-row-${safeId}`);
+      if (!detailsRow || !expandIcon || !mainRow) return;
 
-// 🔽 Adiciona aqui a função do filtro de período por usuário
-function applyUserFilter(userId) {
-  const start = document.getElementById(`startDateUser-${userId}`).value;
-  const end = document.getElementById(`endDateUser-${userId}`).value;
-
-  if (!start || !end) return;
-
-  google.script.run
-    .withSuccessHandler(filtered => {
-      console.log("📅 Dados filtrados para o usuário:", userId, filtered);
-      // Aqui depois podemos atualizar as métricas de forma dinâmica
-    })
-    .filtrarMetricasPorPeriodo(userId, start, end);
-}
+      if (detailsRow.classList.contains('show')) {
+        detailsRow.classList.remove('show');
+        expandIcon.classList.remove('expanded');
+        mainRow.classList.remove('expanded');
+      } else {
+        detailsRow.classList.add('show');
+        expandIcon.classList.add('expanded');
+        mainRow.classList.add('expanded');
+      }
+    }
 
     // =========================================
     // ⚙️ RENDERIZAÇÃO: SETTINGS
