@@ -12,10 +12,10 @@
 // ===============================================================
 
 const NOME_ABA_USUARIOS = 'USUARIOS';
-const NOME_ABA_USUARIOS = 'USUARIOS';
 const NOME_ABA_VENDAS = 'TABLEA DE VENDAS'; // Nome real da aba
 const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS'; // Primária
 const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABLEA DE ORCAMENTOS'; // Fallback
+
 const NOME_ABA_CLIENT_LIST = 'Client_List';
 const NOME_ABA_CONFIG = 'CONFIG';
 const NOME_ABA_AUDITORIA = 'AUDITORIA';
@@ -328,17 +328,32 @@ function formatarData(valor) {
   
   try {
     const tz = Session.getScriptTimeZone();
-    
+
     // Se já é um objeto Date
     if (valor instanceof Date) {
       return Utilities.formatDate(valor, tz, 'dd/MM/yyyy');
     }
-    
+
+    if (typeof valor === 'number') {
+      // Converte números vindos da planilha (serial do Sheets ou timestamp) em datas legíveis
+      let dataSerial = null;
+      if (valor > 1e11) {
+        dataSerial = new Date(valor);
+      } else if (valor > 1000) {
+        const millis = Math.round((valor - 25569) * 86400000);
+        dataSerial = new Date(millis);
+      }
+
+      if (dataSerial && !isNaN(dataSerial.getTime())) {
+        return Utilities.formatDate(dataSerial, tz, 'dd/MM/yyyy');
+      }
+    }
+
     // Se é string
     if (typeof valor === 'string') {
       const onlyDate = valor.trim().split(' ')[0];
       const parts = onlyDate.split(/[\/\-]/);
-      
+
       if (parts.length >= 3) {
         let [p1, p2, p3] = parts.map(p => parseInt(p));
         
@@ -606,6 +621,19 @@ function calcularMetricasVenda(sale, budgets) {
 function obterDadosAdmin() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
+    const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
+
+    // Prioriza ORÇAMENTOS, fallback para TABLEA DE ORCAMENTOS
+    const sheetOrcamentosPrimario = obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS);
+    const sheetOrcamentos = sheetOrcamentosPrimario || obterAbaComLogs(ss, NOME_ABA_ORCAMENTOS_FALLBACK);
+    if (!sheetOrcamentosPrimario && sheetOrcamentos) {
+      console.warn(`ℹ️ Utilizando aba fallback: ${NOME_ABA_ORCAMENTOS_FALLBACK}`);
+    }
+
+    const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
+
 const sheetUsuarios = obterAbaComLogs(ss, NOME_ABA_USUARIOS);
 const sheetVendas = obterAbaComLogs(ss, NOME_ABA_VENDAS);
 
@@ -617,6 +645,7 @@ if (!sheetOrcamentosPrimario && sheetOrcamentos) {
 }
 
 const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
+
 
     if (!sheetUsuarios) throw new Error("Aba 'USUARIOS' não encontrada.");
     
@@ -763,8 +792,12 @@ const sheetConfig = obterAbaComLogs(ss, NOME_ABA_CONFIG);
     return result;
     
   } catch (e) {
-    Logger.log("❌ Erro em obterDadosAdmin: " + e);
-    return { success: false, message: e.message };
+    Logger.log(`❌ Erro em obterDadosAdmin: ${e} | Stack: ${e && e.stack}`);
+    return {
+      success: false,
+      message: e && e.message ? e.message : 'Erro ao carregar dados administrativos.',
+      details: String(e)
+    };
   }
 }
 
@@ -784,6 +817,7 @@ function registrarVenda(dados) {
     if (!aba) {
       throw new Error(`Aba de vendas não encontrada (${NOME_ABA_CLIENT_LIST}).`);
     }
+
 
     if (!dados || !dados.tipo || !dados.cliente || !dados.invoice) {
       throw new Error('Campos obrigatórios não preenchidos.');

@@ -94,6 +94,14 @@
       z-index: 1;
     }
 
+    .content-header {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
     h1 {
       font-size: 22px;
       margin-bottom: 24px;
@@ -378,6 +386,11 @@
       gap: 6px;
     }
 
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .btn-edit {
       background: #eff6ff;
       color: #1e40af;
@@ -414,6 +427,18 @@
 
     .btn-add:hover {
       background: #1e3a5f;
+    }
+
+    .btn-refresh {
+      background: #1f2937;
+      color: #ffffff;
+      padding: 10px 18px;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-refresh:hover:not(:disabled) {
+      background: #111827;
     }
 
     /* ========================================= */
@@ -541,13 +566,17 @@
   <!-- CONTEÚDO PRINCIPAL -->
   <!-- ====================================== -->
   <main class="content">
-    
+    <div class="content-header">
+      <!-- Botão manual para atualização pontual dos dados -->
+      <button id="refreshDataButton" class="btn btn-refresh" type="button">🔄 Atualizar Dados</button>
+    </div>
+
     <!-- ===================== -->
     <!-- SECTION 1: REPORTS -->
     <!-- ===================== -->
     <section id="reports" class="section active">
       <h1>📊 Reports & Analytics</h1>
-      <div id="reportsLoading" class="loading">Carregando relatórios...</div>
+      <div id="reportsLoading" class="loading" data-default-message="Carregando relatórios...">Carregando relatórios...</div>
       <div id="reportsContent" style="display:none;">
         <div class="kpi-container">
           <div class="kpi-card">
@@ -590,7 +619,7 @@
     <section id="users" class="section">
       <h1>👥 Users Management</h1>
       <button class="btn btn-add" onclick="addNewUser()">➕ Add New Employee</button>
-      <div id="usersLoading" class="loading">Carregando usuários...</div>
+      <div id="usersLoading" class="loading" data-default-message="Carregando usuários...">Carregando usuários...</div>
       <div id="usersContent" style="display:none;">
         <div class="data-table">
           <table>
@@ -616,7 +645,7 @@
     <!-- ===================== -->
     <section id="budgets" class="section">
       <h1>💼 Budgets & Quotes</h1>
-      <div id="budgetsLoading" class="loading">Carregando orçamentos...</div>
+      <div id="budgetsLoading" class="loading" data-default-message="Carregando orçamentos...">Carregando orçamentos...</div>
       <div id="budgetsContent" style="display:none;">
         <div class="data-table">
           <table>
@@ -642,7 +671,7 @@
     <!-- ===================== -->
     <section id="sales" class="section">
       <h1>💰 Sales History</h1>
-      <div id="salesLoading" class="loading">Carregando vendas...</div>
+      <div id="salesLoading" class="loading" data-default-message="Carregando vendas...">Carregando vendas...</div>
       <div id="salesContent" style="display:none;">
         <div class="data-table">
           <table>
@@ -668,7 +697,7 @@
     <!-- ===================== -->
     <section id="settings" class="section">
       <h1>⚙️ System Settings</h1>
-      <div id="settingsLoading" class="loading">Carregando configurações...</div>
+      <div id="settingsLoading" class="loading" data-default-message="Carregando configurações...">Carregando configurações...</div>
       <div id="settingsContent" style="display:none;">
         <div class="detail-card">
           <div class="detail-header">Configurações do Sistema</div>
@@ -687,6 +716,58 @@
     // VARIÁVEIS GLOBAIS
     // =========================================
     let adminData = null;
+    let refreshButton = null;
+    // Mapeia os elementos de loading/conteúdo para alternar entre estados de carregamento e erro
+    const sectionLoadingMap = [
+      { loadingId: 'reportsLoading', contentId: 'reportsContent' },
+      { loadingId: 'usersLoading', contentId: 'usersContent' },
+      { loadingId: 'budgetsLoading', contentId: 'budgetsContent' },
+      { loadingId: 'salesLoading', contentId: 'salesContent' },
+      { loadingId: 'settingsLoading', contentId: 'settingsContent' }
+    ];
+
+    // Reativa o placeholder padrão durante requisições e oculta conteúdos desatualizados
+    function setLoadingState(isLoading) {
+      sectionLoadingMap.forEach(({ loadingId, contentId }) => {
+        const loadingEl = document.getElementById(loadingId);
+        const contentEl = document.getElementById(contentId);
+
+        if (isLoading) {
+          if (loadingEl) {
+            const defaultMessage = loadingEl.getAttribute('data-default-message');
+            if (defaultMessage) {
+              loadingEl.textContent = defaultMessage;
+            }
+            loadingEl.style.display = 'block';
+          }
+          if (contentEl) {
+            contentEl.style.display = 'none';
+          }
+        } else if (loadingEl) {
+          loadingEl.style.display = 'none';
+        }
+      });
+    }
+
+    // Evita múltiplas chamadas concorrentes desabilitando o botão durante o carregamento
+    function toggleRefreshButton(isLoading) {
+      if (!refreshButton) return;
+      if (isLoading) {
+        if (!refreshButton.dataset.originalText) {
+          refreshButton.dataset.originalText = refreshButton.textContent;
+        }
+        refreshButton.disabled = true;
+        refreshButton.textContent = '⏳ Atualizando...';
+      } else {
+        refreshButton.disabled = false;
+        const originalText = refreshButton.dataset.originalText || '🔄 Atualizar Dados';
+        refreshButton.textContent = originalText;
+      }
+    }
+
+    function finalizarCarregamento() {
+      toggleRefreshButton(false);
+    }
 
     // =========================================
     // INICIALIZAÇÃO
@@ -694,6 +775,13 @@
     window.addEventListener('DOMContentLoaded', function () {
       console.log('🚀 Painel Administrativo v2.0 iniciado...');
       google.charts.load('current', { packages: ['corechart'] });
+      refreshButton = document.getElementById('refreshDataButton');
+      if (refreshButton) {
+        // Atualização agora depende de ação manual do administrador
+        refreshButton.addEventListener('click', () => {
+          carregarDadosAdmin();
+        });
+      }
       carregarDadosAdmin();
     });
 
@@ -701,6 +789,8 @@
     // FUNÇÃO PRINCIPAL: CARREGAR DADOS
     // =========================================
     function carregarDadosAdmin() {
+      setLoadingState(true);
+      toggleRefreshButton(true);
       google.script.run
         .withSuccessHandler(onSuccessCarregarDados)
         .withFailureHandler(onErrorCarregarDados)
@@ -710,23 +800,39 @@
     function onSuccessCarregarDados(response) {
       console.log('✅ Dados recebidos:', response);
       if (!response || !response.success) {
+        finalizarCarregamento();
         showError('Erro ao carregar dados: ' + (response?.message || 'Falha desconhecida.'));
         return;
       }
 
-      adminData = response.data;
+      setLoadingState(false);
+      const data = response.data || {};
+      adminData = {
+        reports: data.reports || {},
+        users: Array.isArray(data.users) ? data.users : [],
+        budgets: Array.isArray(data.budgets) ? data.budgets : [],
+        sales: Array.isArray(data.sales) ? data.sales : [],
+        settings: data.settings || {}
+      };
 
-      renderReports(adminData.reports);
-      renderUsers(adminData.users);
-      renderBudgets(adminData.budgets);
-      renderSales(adminData.sales);
-      renderSettings(adminData.settings);
-
-      showAlert('✅ Dados carregados com sucesso!');
+      try {
+        renderReports(adminData.reports);
+        renderUsers(adminData.users);
+        renderBudgets(adminData.budgets);
+        renderSales(adminData.sales);
+        renderSettings(adminData.settings);
+        showAlert('✅ Dados carregados com sucesso!');
+      } catch (renderError) {
+        console.error('⚠️ Falha ao renderizar o painel:', renderError);
+        showError('Erro ao exibir os dados no painel. Verifique os logs.');
+      } finally {
+        finalizarCarregamento();
+      }
     }
 
     function onErrorCarregarDados(error) {
       console.error('❌ Erro ao carregar dados:', error);
+      finalizarCarregamento();
       showError('Erro de conexão: ' + (error?.message || 'Erro desconhecido.'));
     }
 
@@ -1352,7 +1458,14 @@
       const sections = ['reports', 'users', 'budgets', 'sales', 'settings'];
       sections.forEach(section => {
         const loading = document.getElementById(section + 'Loading');
-        if (loading) loading.innerHTML = `<div class="error-message">❌ ${msg}</div>`;
+        const content = document.getElementById(section + 'Content');
+        if (content) {
+          content.style.display = 'none';
+        }
+        if (loading) {
+          loading.style.display = 'block';
+          loading.innerHTML = `<div class="error-message">❌ ${msg}</div>`;
+        }
       });
     }
 
