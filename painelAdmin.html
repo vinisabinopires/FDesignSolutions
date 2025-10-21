@@ -94,6 +94,14 @@
       z-index: 1;
     }
 
+    .content-header {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
     h1 {
       font-size: 22px;
       margin-bottom: 24px;
@@ -378,6 +386,11 @@
       gap: 6px;
     }
 
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .btn-edit {
       background: #eff6ff;
       color: #1e40af;
@@ -414,6 +427,18 @@
 
     .btn-add:hover {
       background: #1e3a5f;
+    }
+
+    .btn-refresh {
+      background: #1f2937;
+      color: #ffffff;
+      padding: 10px 18px;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-refresh:hover:not(:disabled) {
+      background: #111827;
     }
 
     /* ========================================= */
@@ -541,13 +566,17 @@
   <!-- CONTEÚDO PRINCIPAL -->
   <!-- ====================================== -->
   <main class="content">
-    
+    <div class="content-header">
+      <!-- Botão manual para atualização pontual dos dados -->
+      <button id="refreshDataButton" class="btn btn-refresh" type="button">🔄 Atualizar Dados</button>
+    </div>
+
     <!-- ===================== -->
     <!-- SECTION 1: REPORTS -->
     <!-- ===================== -->
     <section id="reports" class="section active">
       <h1>📊 Reports & Analytics</h1>
-      <div id="reportsLoading" class="loading">Carregando relatórios...</div>
+      <div id="reportsLoading" class="loading" data-default-message="Carregando relatórios...">Carregando relatórios...</div>
       <div id="reportsContent" style="display:none;">
         <div class="kpi-container">
           <div class="kpi-card">
@@ -590,7 +619,7 @@
     <section id="users" class="section">
       <h1>👥 Users Management</h1>
       <button class="btn btn-add" onclick="addNewUser()">➕ Add New Employee</button>
-      <div id="usersLoading" class="loading">Carregando usuários...</div>
+      <div id="usersLoading" class="loading" data-default-message="Carregando usuários...">Carregando usuários...</div>
       <div id="usersContent" style="display:none;">
         <div class="data-table">
           <table>
@@ -616,7 +645,7 @@
     <!-- ===================== -->
     <section id="budgets" class="section">
       <h1>💼 Budgets & Quotes</h1>
-      <div id="budgetsLoading" class="loading">Carregando orçamentos...</div>
+      <div id="budgetsLoading" class="loading" data-default-message="Carregando orçamentos...">Carregando orçamentos...</div>
       <div id="budgetsContent" style="display:none;">
         <div class="data-table">
           <table>
@@ -642,7 +671,7 @@
     <!-- ===================== -->
     <section id="sales" class="section">
       <h1>💰 Sales History</h1>
-      <div id="salesLoading" class="loading">Carregando vendas...</div>
+      <div id="salesLoading" class="loading" data-default-message="Carregando vendas...">Carregando vendas...</div>
       <div id="salesContent" style="display:none;">
         <div class="data-table">
           <table>
@@ -668,7 +697,7 @@
     <!-- ===================== -->
     <section id="settings" class="section">
       <h1>⚙️ System Settings</h1>
-      <div id="settingsLoading" class="loading">Carregando configurações...</div>
+      <div id="settingsLoading" class="loading" data-default-message="Carregando configurações...">Carregando configurações...</div>
       <div id="settingsContent" style="display:none;">
         <div class="detail-card">
           <div class="detail-header">Configurações do Sistema</div>
@@ -687,6 +716,58 @@
     // VARIÁVEIS GLOBAIS
     // =========================================
     let adminData = null;
+    let refreshButton = null;
+    // Mapeia os elementos de loading/conteúdo para alternar entre estados de carregamento e erro
+    const sectionLoadingMap = [
+      { loadingId: 'reportsLoading', contentId: 'reportsContent' },
+      { loadingId: 'usersLoading', contentId: 'usersContent' },
+      { loadingId: 'budgetsLoading', contentId: 'budgetsContent' },
+      { loadingId: 'salesLoading', contentId: 'salesContent' },
+      { loadingId: 'settingsLoading', contentId: 'settingsContent' }
+    ];
+
+    // Reativa o placeholder padrão durante requisições e oculta conteúdos desatualizados
+    function setLoadingState(isLoading) {
+      sectionLoadingMap.forEach(({ loadingId, contentId }) => {
+        const loadingEl = document.getElementById(loadingId);
+        const contentEl = document.getElementById(contentId);
+
+        if (isLoading) {
+          if (loadingEl) {
+            const defaultMessage = loadingEl.getAttribute('data-default-message');
+            if (defaultMessage) {
+              loadingEl.textContent = defaultMessage;
+            }
+            loadingEl.style.display = 'block';
+          }
+          if (contentEl) {
+            contentEl.style.display = 'none';
+          }
+        } else if (loadingEl) {
+          loadingEl.style.display = 'none';
+        }
+      });
+    }
+
+    // Evita múltiplas chamadas concorrentes desabilitando o botão durante o carregamento
+    function toggleRefreshButton(isLoading) {
+      if (!refreshButton) return;
+      if (isLoading) {
+        if (!refreshButton.dataset.originalText) {
+          refreshButton.dataset.originalText = refreshButton.textContent;
+        }
+        refreshButton.disabled = true;
+        refreshButton.textContent = '⏳ Atualizando...';
+      } else {
+        refreshButton.disabled = false;
+        const originalText = refreshButton.dataset.originalText || '🔄 Atualizar Dados';
+        refreshButton.textContent = originalText;
+      }
+    }
+
+    function finalizarCarregamento() {
+      toggleRefreshButton(false);
+    }
 
     // =========================================
     // INICIALIZAÇÃO
@@ -694,6 +775,13 @@
     window.addEventListener('DOMContentLoaded', function () {
       console.log('🚀 Painel Administrativo v2.0 iniciado...');
       google.charts.load('current', { packages: ['corechart'] });
+      refreshButton = document.getElementById('refreshDataButton');
+      if (refreshButton) {
+        // Atualização agora depende de ação manual do administrador
+        refreshButton.addEventListener('click', () => {
+          carregarDadosAdmin();
+        });
+      }
       carregarDadosAdmin();
     });
 
@@ -701,6 +789,8 @@
     // FUNÇÃO PRINCIPAL: CARREGAR DADOS
     // =========================================
     function carregarDadosAdmin() {
+      setLoadingState(true);
+      toggleRefreshButton(true);
       google.script.run
         .withSuccessHandler(onSuccessCarregarDados)
         .withFailureHandler(onErrorCarregarDados)
@@ -710,23 +800,39 @@
     function onSuccessCarregarDados(response) {
       console.log('✅ Dados recebidos:', response);
       if (!response || !response.success) {
+        finalizarCarregamento();
         showError('Erro ao carregar dados: ' + (response?.message || 'Falha desconhecida.'));
         return;
       }
 
-      adminData = response.data;
+      setLoadingState(false);
+      const data = response.data || {};
+      adminData = {
+        reports: data.reports || {},
+        users: Array.isArray(data.users) ? data.users : [],
+        budgets: Array.isArray(data.budgets) ? data.budgets : [],
+        sales: Array.isArray(data.sales) ? data.sales : [],
+        settings: data.settings || {}
+      };
 
-      renderReports(adminData.reports);
-      renderUsers(adminData.users);
-      renderBudgets(adminData.budgets);
-      renderSales(adminData.sales);
-      renderSettings(adminData.settings);
-
-      showAlert('✅ Dados carregados com sucesso!');
+      try {
+        renderReports(adminData.reports);
+        renderUsers(adminData.users);
+        renderBudgets(adminData.budgets);
+        renderSales(adminData.sales);
+        renderSettings(adminData.settings);
+        showAlert('✅ Dados carregados com sucesso!');
+      } catch (renderError) {
+        console.error('⚠️ Falha ao renderizar o painel:', renderError);
+        showError('Erro ao exibir os dados no painel. Verifique os logs.');
+      } finally {
+        finalizarCarregamento();
+      }
     }
 
     function onErrorCarregarDados(error) {
       console.error('❌ Erro ao carregar dados:', error);
+      finalizarCarregamento();
       showError('Erro de conexão: ' + (error?.message || 'Erro desconhecido.'));
     }
 
@@ -734,36 +840,59 @@
     // 📊 RENDERIZAÇÃO: REPORTS
     // =========================================
     function renderReports(reports) {
-      document.getElementById('reportsLoading').style.display = 'none';
-      document.getElementById('reportsContent').style.display = 'block';
+      const loadingEl = document.getElementById('reportsLoading');
+      const contentEl = document.getElementById('reportsContent');
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (contentEl) contentEl.style.display = 'block';
 
-      // KPIs
-      document.getElementById('kpi-totalVendas').textContent = '$' + reports.kpis.totalVendas.toFixed(2);
-      document.getElementById('kpi-totalComissoes').textContent = '$' + reports.kpis.totalComissoes.toFixed(2);
-      document.getElementById('kpi-orcamentosAbertos').textContent = reports.kpis.orcamentosAbertos;
-      document.getElementById('kpi-vendedoresAtivos').textContent = reports.kpis.vendedoresAtivos;
-      document.getElementById('kpi-taxaConversao').textContent = reports.kpis.taxaConversao + '%';
+      const safeReports = reports || {}; // Proteção contra retornos parciais do backend
+      const kpis = safeReports.kpis || {};
 
-      // GRÁFICOS
+      const totalVendas = Number(kpis.totalVendas || 0);
+      const totalComissoes = Number(kpis.totalComissoes || 0);
+      const orcamentosAbertos = Number(kpis.orcamentosAbertos || 0);
+      const vendedoresAtivos = Number(kpis.vendedoresAtivos || 0);
+      const taxaConversao = Number(kpis.taxaConversao || 0);
+
+      document.getElementById('kpi-totalVendas').textContent = '$' + totalVendas.toFixed(2);
+      document.getElementById('kpi-totalComissoes').textContent = '$' + totalComissoes.toFixed(2);
+      document.getElementById('kpi-orcamentosAbertos').textContent = orcamentosAbertos.toString();
+      document.getElementById('kpi-vendedoresAtivos').textContent = vendedoresAtivos.toString();
+      document.getElementById('kpi-taxaConversao').textContent = taxaConversao.toFixed(1) + '%';
+
+      const chartVendasContainer = document.getElementById('chartVendasPorTipo');
+      const chartOrcContainer = document.getElementById('chartOrcPorStatus');
+
+      const grafVendas = Array.isArray(safeReports.grafVendasPorTipo) ? safeReports.grafVendasPorTipo : [];
+      const grafOrc = Array.isArray(safeReports.grafOrcPorStatus) ? safeReports.grafOrcPorStatus : [];
+
       google.charts.setOnLoadCallback(function () {
         try {
-          const dataVendas = google.visualization.arrayToDataTable(reports.grafVendasPorTipo);
-          const chartVendas = new google.visualization.PieChart(document.getElementById('chartVendasPorTipo'));
-          chartVendas.draw(dataVendas, {
-            title: '',
-            pieHole: 0.4,
-            colors: ['#2b5797', '#fbbc04', '#34a853'],
-            legend: { position: 'bottom' },
-          });
+          if (grafVendas.length > 1 && chartVendasContainer) {
+            const dataVendas = google.visualization.arrayToDataTable(grafVendas);
+            const chartVendas = new google.visualization.PieChart(chartVendasContainer);
+            chartVendas.draw(dataVendas, {
+              title: '',
+              pieHole: 0.4,
+              colors: ['#2b5797', '#fbbc04', '#34a853'],
+              legend: { position: 'bottom' },
+            });
+          } else if (chartVendasContainer) {
+            chartVendasContainer.innerHTML = '<p style="text-align:center;color:#6b7280;">Sem dados suficientes</p>';
+          }
 
-          const dataOrc = google.visualization.arrayToDataTable(reports.grafOrcPorStatus);
-          const chartOrc = new google.visualization.PieChart(document.getElementById('chartOrcPorStatus'));
-          chartOrc.draw(dataOrc, {
-            title: '',
-            pieHole: 0.4,
-            colors: ['#2b5797', '#fbbc04', '#ea4335'],
-            legend: { position: 'bottom' },
-          });
+          if (grafOrc.length > 1 && chartOrcContainer) {
+            const dataOrc = google.visualization.arrayToDataTable(grafOrc);
+            const chartOrc = new google.visualization.PieChart(chartOrcContainer);
+            chartOrc.draw(dataOrc, {
+              title: '',
+              pieHole: 0.4,
+              colors: ['#2b5797', '#fbbc04', '#ea4335'],
+              legend: { position: 'bottom' },
+            });
+          } else if (chartOrcContainer) {
+            chartOrcContainer.innerHTML = '<p style="text-align:center;color:#6b7280;">Sem dados suficientes</p>';
+          }
         } catch (err) {
           console.warn('⚠️ Erro ao desenhar gráficos:', err);
         }
@@ -779,17 +908,20 @@
       const tbody = document.getElementById('usersTableBody');
       tbody.innerHTML = '';
 
-      if (!users || users.length === 0) {
+      const listaUsuarios = Array.isArray(users) ? users : []; // Evita TypeError quando o backend não envia a lista
+
+      if (listaUsuarios.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum usuário cadastrado</div></td></tr>';
         return;
       }
 
-      users.forEach((user, index) => {
+      listaUsuarios.forEach((user, index) => {
         const statusClass = user.status === 'Ativo' ? 'status-ativo' : 'status-inativo';
         const metrics = user.metrics || {};
         const financial = metrics.financial || {};
         const conversion = metrics.conversion || {};
-        
+        const comissaoPadrao = Number(user.comissao || 0);
+
         // Linha principal
         const mainRow = `
           <tr class="main-row" onclick="toggleUserDetails(${index})">
@@ -799,7 +931,7 @@
             <td><span class="status-badge ${statusClass}">${user.status}</span></td>
             <td>$${financial.totalRevenue ? financial.totalRevenue.toFixed(2) : '0.00'}</td>
             <td>${conversion.rate ? conversion.rate.toFixed(1) : '0'}%</td>
-            <td>${(user.comissao * 100).toFixed(0)}%</td>
+            <td>${(comissaoPadrao * 100).toFixed(0)}%</td>
           </tr>
         `;
         
@@ -825,6 +957,7 @@
       const conv = m.conversion || {};
       const fin = m.financial || {};
       const der = m.derived || {};
+      const comissaoPadrao = Number(user.comissao || 0);
       
       return `
         <div class="detail-card">
@@ -845,7 +978,7 @@
             </div>
             <div class="detail-item">
               <div class="detail-label">Comissão Padrão</div>
-              <div class="detail-value">${(user.comissao * 100).toFixed(0)}%</div>
+              <div class="detail-value">${(comissaoPadrao * 100).toFixed(0)}%</div>
             </div>
           </div>
 
@@ -971,12 +1104,14 @@
       const tbody = document.getElementById('budgetsTableBody');
       tbody.innerHTML = '';
 
-      if (!budgets || budgets.length === 0) {
+      const listaOrcamentos = Array.isArray(budgets) ? budgets : []; // Protege contra respostas sem dados de orçamento
+
+      if (listaOrcamentos.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum orçamento cadastrado</div></td></tr>';
         return;
       }
 
-      budgets.forEach((budget, index) => {
+      listaOrcamentos.forEach((budget, index) => {
         const indicatorClass = `indicator-${budget.corStatus || 'gray'}`;
         
         const mainRow = `
@@ -1130,12 +1265,14 @@
       const tbody = document.getElementById('salesTableBody');
       tbody.innerHTML = '';
 
-      if (!sales || sales.length === 0) {
+      const listaVendas = Array.isArray(sales) ? sales : []; // Evita quebra quando vendas não são carregadas
+
+      if (listaVendas.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhuma venda registrada</div></td></tr>';
         return;
       }
 
-      sales.forEach((sale, index) => {
+      listaVendas.forEach((sale, index) => {
         const mainRow = `
           <tr class="main-row" onclick="toggleSaleDetails(${index})">
             <td><span class="expand-icon" id="expand-sale-${index}">▶</span></td>
@@ -1191,6 +1328,10 @@
             <div class="detail-item">
               <div class="detail-label">Produto</div>
               <div class="detail-value">${sale.produto || '-'}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Criado Por</div>
+              <div class="detail-value">${sale.criadoPor || '-'}</div>
             </div>
           </div>
 
@@ -1250,20 +1391,22 @@
       const grid = document.getElementById('settingsGrid');
       grid.innerHTML = '';
 
-      if (!settings || Object.keys(settings).length === 0) {
+      const safeSettings = (settings && typeof settings === 'object') ? settings : {}; // Garante objeto iterável
+
+      if (Object.keys(safeSettings).length === 0) {
         grid.innerHTML = '<p style="color:#6b7280;">Nenhuma configuração disponível</p>';
         return;
       }
 
-      for (const key in settings) {
+      Object.entries(safeSettings).forEach(([key, value]) => {
         const item = `
           <div class="detail-item">
             <div class="detail-label">${key}</div>
-            <div class="detail-value">${settings[key]}</div>
+            <div class="detail-value">${value}</div>
           </div>
         `;
         grid.innerHTML += item;
-      }
+      });
     }
 
     // =========================================
@@ -1315,7 +1458,14 @@
       const sections = ['reports', 'users', 'budgets', 'sales', 'settings'];
       sections.forEach(section => {
         const loading = document.getElementById(section + 'Loading');
-        if (loading) loading.innerHTML = `<div class="error-message">❌ ${msg}</div>`;
+        const content = document.getElementById(section + 'Content');
+        if (content) {
+          content.style.display = 'none';
+        }
+        if (loading) {
+          loading.style.display = 'block';
+          loading.innerHTML = `<div class="error-message">❌ ${msg}</div>`;
+        }
       });
     }
 
