@@ -1,0 +1,13 @@
+.git/**
+node_modules/**
+.vscode/**
+renameUsers.js
+log_*
+log_backup_*
+*.bat
+*.log
+*.md
+*.pdf
+*.txt
+*.tmp
+

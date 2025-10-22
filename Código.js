@@ -12,7 +12,7 @@
 // ===============================================================
 
 const NOME_ABA_USUARIOS = 'USUARIOS';
-const NOME_ABA_VENDAS = 'TABLEA DE VENDAS'; // Nome real da aba
+const NOME_ABA_VENDAS = 'Client_List';
 const NOME_ABA_ORCAMENTOS = 'ORÇAMENTOS'; // Primária
 const NOME_ABA_ORCAMENTOS_FALLBACK = 'TABLEA DE ORCAMENTOS'; // Fallback
 
@@ -307,8 +307,11 @@ function abrirPainelAdmin() {
 }
 
 function abrirPainelVendas() {
-  const html = HtmlService.createTemplateFromFile("dashboardVendas").evaluate();
-  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1200).setHeight(720), "Painel de Vendas — F/Design Solutions");
+  const html = HtmlService.createTemplateFromFile("homeVendedor").evaluate();
+  SpreadsheetApp.getUi().showModalDialog(
+    html.setWidth(1200).setHeight(720),
+    "Painel do Vendedor — F/Design Solutions"
+  );
 }
 
 function abrirLoginSistema() {
@@ -1620,4 +1623,351 @@ function iniciarSistemaFDesign() {
     Logger.log("❌ Erro ao iniciar sistema: " + e);
     abrirLoginSistema();
   }
+}
+
+// ===============================================================
+// 🔐 AUTENTICAÇÃO MANUAL DE USUÁRIOS (Nova versão)
+// ===============================================================
+function loginManual(email, pin) {
+  try {
+    const usuarios = obterUsuariosModulo();
+    const emailNormalizado = String(email).toLowerCase().trim();
+    const pinNormalizado = String(pin).trim();
+
+    const usuario = usuarios.find(u =>
+      String(u.email).toLowerCase().trim() === emailNormalizado &&
+      String(u.pin).trim() === pinNormalizado &&
+      String(u.status).toLowerCase().trim() === "ativo"
+    );
+
+    if (!usuario) {
+      Logger.log(`❌ Falha no login manual: ${emailNormalizado}`);
+      return { success: false, message: "E-mail ou PIN incorretos" };
+    }
+
+    iniciarSessao(usuario);
+    Logger.log("✅ Login manual bem-sucedido: " + usuario.nome);
+
+    return {
+      success: true,
+      id: usuario.id,
+      nome: usuario.nome,
+      tipo: usuario.tipo,
+      email: usuario.email,
+      comissaoPadrao: usuario.comissao
+    };
+
+  } catch (erro) {
+    Logger.log("❌ Erro no login manual: " + erro);
+    return { success: false, message: "Erro interno ao tentar login" };
+  }
+}
+
+// ===============================================================
+// 🧾 MÓDULO DE ORÇAMENTOS
+// ===============================================================
+
+/**
+ * Retorna todos os orçamentos vinculados ao vendedor logado
+ * ou todos se for Admin/Gerente.
+ */
+function obterOrcamentosPorVendedor(nomeVendedor) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ORÇAMENTOS");
+  if (!sh) {
+    Logger.log("❌ Aba ORÇAMENTOS não encontrada.");
+    return [];
+  }
+
+  const dados = sh.getDataRange().getValues();
+  const lista = [];
+
+  for (let i = 1; i < dados.length; i++) {
+    const [numero, cliente, empresa, telefone, valor, status, vendedor] = dados[i];
+    if (!numero) continue;
+
+    if (!nomeVendedor || String(vendedor).trim().toLowerCase() === nomeVendedor.toLowerCase()) {
+      lista.push({
+        numero: String(numero),
+        cliente: String(cliente || "-"),
+        empresa: String(empresa || "-"),
+        telefone: String(telefone || "-"),
+        valor: valor || 0,
+        status: String(status || "Aberto"),
+        vendedor: String(vendedor || "-")
+      });
+    }
+  }
+
+  Logger.log(`✅ ${lista.length} orçamentos carregados para ${nomeVendedor}`);
+  return lista;
+}
+
+// ===============================================================
+// 📦 MÓDULO DE VENDAS E ORÇAMENTOS — F/DESIGN SOLUTIONS
+// Integra: Client_List (vendas) e ORÇAMENTOS (orçamentos)
+// ===============================================================
+
+// ---------------------------------------------------------------
+// 🧭 Função auxiliar — Gera ID único (VEN-0001 / ORC-0001)
+// ---------------------------------------------------------------
+function gerarIdUnico(prefixo) {
+  const agora = new Date();
+  const ano = agora.getFullYear().toString().slice(-2);
+  const mes = (agora.getMonth() + 1).toString().padStart(2, "0");
+  const dia = agora.getDate().toString().padStart(2, "0");
+  const hora = agora.getHours().toString().padStart(2, "0");
+  const min = agora.getMinutes().toString().padStart(2, "0");
+  const seg = agora.getSeconds().toString().padStart(2, "0");
+  return `${prefixo}-${ano}${mes}${dia}${hora}${min}${seg}`;
+}
+
+// ---------------------------------------------------------------
+// 👤 Função auxiliar — Obtém o usuário logado
+// ---------------------------------------------------------------
+function obterUsuarioAtual() {
+  try {
+    const sessao = obterSessaoAtual && obterSessaoAtual();
+    if (sessao && sessao.nome) return sessao.nome;
+  } catch (e) {}
+  return Session.getActiveUser().getEmail() || "Usuário desconhecido";
+}
+
+// ---------------------------------------------------------------
+// 💰 Registrar Venda — grava em Client_List
+// ---------------------------------------------------------------
+function registrarVenda(dados) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("Client_List");
+  if (!sh) return { success: false, message: "Aba Client_List não encontrada." };
+
+  const id = gerarIdUnico("VEN");
+  const vendedor = obterUsuarioAtual();
+  const data = new Date();
+
+  const novaLinha = [
+    id,                      // A: ID
+    data,                    // B: Data
+    vendedor,                // C: Vendedor
+    dados.cliente || "",      // D: Cliente
+    dados.empresa || "",      // E: Empresa
+    dados.produto || "",      // F: Produto
+    parseFloat(dados.valor) || 0, // G: Valor
+    "Pending",                // H: Status
+    0,                        // I: Tentativas
+    "",                       // J: Pagamentos
+    "",                       // K: Última atualização
+    `Created by ${vendedor} on ${data.toLocaleString()}` // L: Log
+  ];
+
+  sh.appendRow(novaLinha);
+  return { success: true, id, message: "Venda registrada com sucesso." };
+}
+
+// ---------------------------------------------------------------
+// 🧾 Registrar Orçamento — grava em ORÇAMENTOS
+// ---------------------------------------------------------------
+function registrarOrcamento(dados) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("ORÇAMENTOS");
+  if (!sh) return { success: false, message: "Aba ORÇAMENTOS não encontrada." };
+
+  const id = gerarIdUnico("ORC");
+  const vendedor = obterUsuarioAtual();
+  const data = new Date();
+
+  const novaLinha = [
+    id,
+    data,
+    vendedor,
+    dados.cliente || "",
+    dados.empresa || "",
+    dados.produto || "",
+    parseFloat(dados.valor) || 0,
+    "Open",
+    0,
+    "",
+    "",
+    `Quote created by ${vendedor} on ${data.toLocaleString()}`
+  ];
+
+  sh.appendRow(novaLinha);
+  return { success: true, id, message: "Orçamento registrado com sucesso." };
+}
+
+// ---------------------------------------------------------------
+// 🔍 Buscar Vendas (Client_List) — filtros opcionais
+// ---------------------------------------------------------------
+function buscarVendas(filtros) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("Client_List");
+  if (!sh) return [];
+
+  const dados = sh.getDataRange().getValues();
+  const cab = dados.shift();
+
+  const { nome, empresa, invoice, produto } = filtros;
+  const filtrados = dados.filter(l =>
+    (!nome || (l[3] || "").toLowerCase().includes(nome.toLowerCase())) &&
+    (!empresa || (l[4] || "").toLowerCase().includes(empresa.toLowerCase())) &&
+    (!invoice || (l[0] || "").toLowerCase().includes(invoice.toLowerCase())) &&
+    (!produto || (l[5] || "").toLowerCase().includes(produto.toLowerCase()))
+  );
+
+  return filtrados.map(l => ({
+    id: l[0],
+    data: l[1],
+    vendedor: l[2],
+    cliente: l[3],
+    empresa: l[4],
+    produto: l[5],
+    valor: l[6],
+    status: l[7],
+    tentativas: l[8],
+    pagamentos: l[9],
+    ultimaAtualizacao: l[10],
+    log: l[11]
+  }));
+}
+
+// ---------------------------------------------------------------
+// 🔍 Buscar Orçamentos — filtros opcionais
+// ---------------------------------------------------------------
+function buscarOrcamentos(filtros) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("ORÇAMENTOS");
+  if (!sh) return [];
+
+  const dados = sh.getDataRange().getValues();
+  const cab = dados.shift();
+
+  const { nome, empresa, invoice, produto } = filtros;
+  const filtrados = dados.filter(l =>
+    (!nome || (l[3] || "").toLowerCase().includes(nome.toLowerCase())) &&
+    (!empresa || (l[4] || "").toLowerCase().includes(empresa.toLowerCase())) &&
+    (!invoice || (l[0] || "").toLowerCase().includes(invoice.toLowerCase())) &&
+    (!produto || (l[5] || "").toLowerCase().includes(produto.toLowerCase()))
+  );
+
+  return filtrados.map(l => ({
+    id: l[0],
+    data: l[1],
+    vendedor: l[2],
+    cliente: l[3],
+    empresa: l[4],
+    produto: l[5],
+    valor: l[6],
+    status: l[7],
+    tentativas: l[8],
+    pagamentos: l[9],
+    ultimaAtualizacao: l[10],
+    log: l[11]
+  }));
+}
+
+// ---------------------------------------------------------------
+// ☎️ Registrar Tentativa de Contato (Client_List)
+// ---------------------------------------------------------------
+function registrarTentativaContato(id, tipo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("Client_List");
+  const dados = sh.getDataRange().getValues();
+
+  for (let i = 1; i < dados.length; i++) {
+    if (dados[i][0] === id) {
+      const tentativas = (dados[i][8] || 0) + 1;
+      const vendedor = obterUsuarioAtual();
+      const logMsg = `Contact attempt (${tipo}) by ${vendedor} — ${new Date().toLocaleString()}`;
+
+      sh.getRange(i + 1, 9).setValue(tentativas);
+      sh.getRange(i + 1, 11).setValue(new Date());
+      sh.getRange(i + 1, 12).setValue(logMsg);
+      return { success: true, tentativas };
+    }
+  }
+  return { success: false, message: "Venda não encontrada." };
+}
+
+// ---------------------------------------------------------------
+// 💳 Registrar Pagamento Parcial — abate do total (Client_List)
+// ---------------------------------------------------------------
+function registrarPagamento(id, valor, metodo) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("Client_List");
+  const dados = sh.getDataRange().getValues();
+
+  for (let i = 1; i < dados.length; i++) {
+    if (dados[i][0] === id) {
+      const pagos = parseFloat(dados[i][9]) || 0;
+      const novoTotal = pagos + parseFloat(valor);
+      const vendedor = obterUsuarioAtual();
+
+      const logMsg = `Payment of $${valor} via ${metodo} — ${vendedor} — ${new Date().toLocaleString()}`;
+      sh.getRange(i + 1, 10).setValue(novoTotal);
+      sh.getRange(i + 1, 11).setValue(new Date());
+      sh.getRange(i + 1, 12).setValue(logMsg);
+
+      return { success: true, total: novoTotal };
+    }
+  }
+  return { success: false, message: "Venda não encontrada." };
+}
+
+// ---------------------------------------------------------------
+// 🔁 Converter Orçamento em Venda
+// ---------------------------------------------------------------
+function converterOrcamentoParaVenda(id) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shOrc = ss.getSheetByName("ORÇAMENTOS");
+  const shVend = ss.getSheetByName("Client_List");
+  const dados = shOrc.getDataRange().getValues();
+
+  for (let i = 1; i < dados.length; i++) {
+    if (dados[i][0] === id) {
+      const linha = dados[i];
+      const vendedor = obterUsuarioAtual();
+      const novaVenda = [
+        gerarIdUnico("VEN"),
+        new Date(),
+        vendedor,
+        linha[3], // cliente
+        linha[4], // empresa
+        linha[5], // produto
+        linha[6], // valor
+        "Pending",
+        0,
+        "",
+        "",
+        `Converted from ${id} by ${vendedor} — ${new Date().toLocaleString()}`
+      ];
+      shVend.appendRow(novaVenda);
+
+      // Atualiza status do orçamento original
+      shOrc.getRange(i + 1, 8).setValue("Converted to Sale");
+      return { success: true, idVenda: novaVenda[0] };
+    }
+  }
+  return { success: false, message: "Orçamento não encontrado." };
+}
+
+// ===============================
+// 🔹 SELLER PANEL: SUB-SCREENS
+// ===============================
+function abrirFormVendas() {
+  const html = HtmlService.createTemplateFromFile("formVendas").evaluate();
+  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1000).setHeight(720), "New Sale — F/Design Solutions");
+}
+
+function abrirDashboardVendas() {
+  const html = HtmlService.createTemplateFromFile("dashboardVendas").evaluate();
+  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1100).setHeight(720), "Sales Dashboard — F/Design Solutions");
+}
+
+function abrirPainelAdmin() {
+  const html = HtmlService.createTemplateFromFile("painelAdmin").evaluate();
+  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1200).setHeight(720), "Admin Panel — F/Design Solutions");
+}
+
+function abrirFormGerenciar() {
+  const html = HtmlService.createTemplateFromFile("orcamentosDashboard").evaluate();
+  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1100).setHeight(720), "Quotes — F/Design Solutions");
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales Dashboard — F/Design Solutions</title>
+  <title>Quotes Dashboard — F/Design Solutions</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; font-family: 'Nunito Sans', sans-serif; }
@@ -99,15 +99,8 @@
     }
     .btn-call { background: #0ea5e9; color: #fff; }
     .btn-msg { background: #10b981; color: #fff; }
-    .btn-pay { background: #fbbc04; color: #000; }
-    .btn-close { background: #dc2626; color: #fff; }
-
-    .field-group {
-      display: flex; gap: 10px; align-items: center; margin-top: 10px;
-    }
-    .field-group input, .field-group select {
-      flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px;
-    }
+    .btn-convert { background: #fbbc04; color: #000; }
+    .btn-lost { background: #dc2626; color: #fff; }
 
     .toast {
       position: fixed; bottom: 20px; right: 20px; padding: 12px 18px;
@@ -120,57 +113,43 @@
 
 <body>
   <div class="dashboard">
-    <h1>Sales Dashboard</h1>
-    <p class="subtext">Search, manage, and update your client sales.</p>
+    <h1>Quotes Dashboard</h1>
+    <p class="subtext">Search, manage, and convert client quotes.</p>
 
     <div class="search-section">
       <input id="searchClient" placeholder="Client name">
       <input id="searchCompany" placeholder="Company">
-      <input id="searchInvoice" placeholder="Invoice #">
+      <input id="searchQuote" placeholder="Quote ID">
       <input id="searchProduct" placeholder="Product">
-      <button class="btn-primary" onclick="searchSales()">Search</button>
+      <button class="btn-primary" onclick="searchQuotes()">Search</button>
     </div>
 
-    <table id="salesTable">
+    <table id="quotesTable">
       <thead>
         <tr>
           <th>ID</th><th>Client</th><th>Company</th><th>Product</th><th>Value</th><th>Status</th>
         </tr>
       </thead>
-      <tbody id="salesBody">
+      <tbody id="quotesBody">
         <tr><td colspan="6" class="empty">No results found</td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- MODAL -->
-  <div id="saleModal" class="modal">
+  <div id="quoteModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="saleTitle">Sale Details</h2>
+        <h2 id="quoteTitle">Quote Details</h2>
         <button class="close-btn" onclick="closeModal()">×</button>
       </div>
-      <div id="saleInfo"></div>
+      <div id="quoteInfo"></div>
 
       <div class="action-buttons">
         <button class="btn-call" onclick="addContact('Call')">+ Call</button>
         <button class="btn-msg" onclick="addContact('Message')">+ Message</button>
-        <button class="btn-pay" onclick="openPayment()">+ Payment</button>
-        <button class="btn-close" onclick="closeSale()">Close Sale</button>
-      </div>
-
-      <div id="paymentSection" style="display:none; margin-top:10px;">
-        <div class="field-group">
-          <input id="paymentValue" type="number" placeholder="Amount ($)" step="0.01" min="0">
-          <select id="paymentMethod">
-            <option value="">Method</option>
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-            <option value="Check">Check</option>
-            <option value="Zelle">Zelle</option>
-          </select>
-        </div>
-        <button class="btn-primary" style="margin-top:10px;" onclick="applyPayment()">Apply Payment</button>
+        <button class="btn-convert" onclick="convertQuote()">Convert to Sale</button>
+        <button class="btn-lost" onclick="markLost()">Mark as Lost</button>
       </div>
     </div>
   </div>
@@ -178,97 +157,89 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    let currentSale = null;
+    let currentQuote = null;
 
-    function searchSales() {
+    function searchQuotes() {
       const filtros = {
         nome: document.getElementById('searchClient').value.trim(),
         empresa: document.getElementById('searchCompany').value.trim(),
-        invoice: document.getElementById('searchInvoice').value.trim(),
+        invoice: document.getElementById('searchQuote').value.trim(),
         produto: document.getElementById('searchProduct').value.trim(),
       };
 
       google.script.run
-        .withSuccessHandler(renderSales)
-        .withFailureHandler(err => showToast('Error searching sales', 'error'))
-        .buscarVendas(filtros);
+        .withSuccessHandler(renderQuotes)
+        .withFailureHandler(() => showToast('Error searching quotes', 'error'))
+        .buscarOrcamentos(filtros);
     }
 
-    function renderSales(sales) {
-      const tbody = document.getElementById('salesBody');
+    function renderQuotes(quotes) {
+      const tbody = document.getElementById('quotesBody');
       tbody.innerHTML = '';
 
-      if (!sales || sales.length === 0) {
+      if (!quotes || quotes.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="empty">No results found</td></tr>';
         return;
       }
 
-      sales.forEach(s => {
+      quotes.forEach(q => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${s.id}</td>
-          <td>${s.cliente}</td>
-          <td>${s.empresa}</td>
-          <td>${s.produto}</td>
-          <td>$${parseFloat(s.valor).toFixed(2)}</td>
-          <td>${s.status}</td>
+          <td>${q.id}</td>
+          <td>${q.cliente}</td>
+          <td>${q.empresa}</td>
+          <td>${q.produto}</td>
+          <td>$${parseFloat(q.valor).toFixed(2)}</td>
+          <td>${q.status}</td>
         `;
-        row.onclick = () => openSaleDetails(s);
+        row.onclick = () => openQuoteDetails(q);
         tbody.appendChild(row);
       });
     }
 
-    function openSaleDetails(sale) {
-      currentSale = sale;
-      document.getElementById('saleTitle').textContent = `Sale #${sale.id}`;
-      document.getElementById('saleInfo').innerHTML = `
-        <p><strong>Client:</strong> ${sale.cliente}</p>
-        <p><strong>Company:</strong> ${sale.empresa}</p>
-        <p><strong>Product:</strong> ${sale.produto}</p>
-        <p><strong>Value:</strong> $${parseFloat(sale.valor).toFixed(2)}</p>
-        <p><strong>Status:</strong> ${sale.status}</p>
-        <p><strong>Attempts:</strong> ${sale.tentativas || 0}</p>
+    function openQuoteDetails(quote) {
+      currentQuote = quote;
+      document.getElementById('quoteTitle').textContent = `Quote #${quote.id}`;
+      document.getElementById('quoteInfo').innerHTML = `
+        <p><strong>Client:</strong> ${quote.cliente}</p>
+        <p><strong>Company:</strong> ${quote.empresa}</p>
+        <p><strong>Product:</strong> ${quote.produto}</p>
+        <p><strong>Value:</strong> $${parseFloat(quote.valor).toFixed(2)}</p>
+        <p><strong>Status:</strong> ${quote.status}</p>
+        <p><strong>Attempts:</strong> ${quote.tentativas || 0}</p>
       `;
-      document.getElementById('saleModal').style.display = 'flex';
+      document.getElementById('quoteModal').style.display = 'flex';
     }
 
     function closeModal() {
-      document.getElementById('saleModal').style.display = 'none';
-      document.getElementById('paymentSection').style.display = 'none';
+      document.getElementById('quoteModal').style.display = 'none';
     }
 
     function addContact(type) {
-      if (!currentSale) return;
+      if (!currentQuote) return;
       google.script.run
         .withSuccessHandler(res => {
           showToast(`${type} logged (${res.tentativas} total)`, 'success');
-          searchSales();
+          searchQuotes();
         })
         .withFailureHandler(() => showToast('Error adding contact', 'error'))
-        .registrarTentativaContato(currentSale.id, type);
+        .registrarTentativaContato(currentQuote.id, type);
     }
 
-    function openPayment() {
-      document.getElementById('paymentSection').style.display = 'block';
-    }
-
-    function applyPayment() {
-      const value = document.getElementById('paymentValue').value;
-      const method = document.getElementById('paymentMethod').value;
-      if (!value || !method) return showToast('Fill all payment fields', 'error');
-
+    function convertQuote() {
+      if (!currentQuote) return;
       google.script.run
         .withSuccessHandler(res => {
-          showToast(`Payment added. Total paid: $${res.total.toFixed(2)}`, 'success');
-          document.getElementById('paymentSection').style.display = 'none';
-          searchSales();
+          showToast(`Quote converted to Sale: ${res.idVenda}`, 'success');
+          searchQuotes();
         })
-        .withFailureHandler(() => showToast('Error registering payment', 'error'))
-        .registrarPagamento(currentSale.id, parseFloat(value), method);
+        .withFailureHandler(() => showToast('Error converting quote', 'error'))
+        .converterOrcamentoParaVenda(currentQuote.id);
+      closeModal();
     }
 
-    function closeSale() {
-      showToast('Sale marked as completed ✔️', 'success');
+    function markLost() {
+      showToast('Quote marked as Lost ❌', 'success');
       closeModal();
     }
 
