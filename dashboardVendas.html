@@ -1,176 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales Dashboard — F/Design Solutions</title>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Dashboard · F/Design Solutions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    * { box-sizing: border-box; font-family: 'Nunito Sans', sans-serif; }
+    :root {
+      --bg: #0f172a;
+      --card: rgba(15, 23, 42, 0.88);
+      --border: rgba(148, 163, 184, 0.2);
+      --accent: #fbbc04;
+      --success: #22c55e;
+      --danger: #f87171;
+      color-scheme: dark;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100vh; color: #fff;
-      background: linear-gradient(135deg, #1b2b5a, #283f87, #2b5797);
-      background-size: 300% 300%;
-      animation: gradientShift 18s ease infinite;
-      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-      padding: 30px;
+      margin: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), rgba(15, 23, 42, 0.9));
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-
-    .dashboard {
-      width: 95%; max-width: 1000px;
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    header p {
+      margin: 6px 0 0;
+      color: rgba(148, 163, 184, 0.85);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 30px 40px;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-      backdrop-filter: blur(14px);
-      animation: fadeIn 0.8s ease;
+      padding: 24px;
+      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.4);
     }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
-
-    h1 {
-      font-weight: 800; font-size: 2rem; margin: 0 0 6px;
-    }
-    .subtext {
-      color: #e0e6f7; font-size: 1.1rem; margin-bottom: 25px;
-    }
-
-    .search-section {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 15px; margin-bottom: 25px;
+    .search-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
     }
     input {
-      padding: 12px 16px; border-radius: 10px; border: none; font-size: 1rem;
-      background: rgba(255,255,255,0.15); color: #fff;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.6);
+      color: #e2e8f0;
     }
-    input::placeholder { color: rgba(255,255,255,0.6); }
-    button {
-      padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer;
-      font-weight: 700; font-size: 1rem; transition: all 0.25s ease;
+    input::placeholder { color: rgba(148, 163, 184, 0.6); }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #ffd250);
+      color: #111827;
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-weight: 600;
+      cursor: pointer;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #fbbc04, #ffcc33);
-      color: #222;
-    }
-    .btn-primary:hover { transform: translateY(-2px); }
-
     table {
-      width: 100%; border-collapse: collapse; margin-top: 10px;
-      background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
     }
     th, td {
-      padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      text-align: left;
+      font-size: 0.95rem;
     }
-    th { font-weight: 700; color: #ffdf85; background: rgba(255,255,255,0.08); }
-    tr:hover { background: rgba(255,255,255,0.12); cursor: pointer; }
+    th { color: rgba(148, 163, 184, 0.9); font-weight: 600; }
+    tr:hover { background: rgba(59, 130, 246, 0.12); cursor: pointer; }
+    .empty { text-align: center; padding: 24px; color: rgba(148, 163, 184, 0.7); }
 
-    .empty {
-      text-align: center; padding: 25px; font-style: italic; color: rgba(255,255,255,0.6);
-    }
-
-    /* MODAL */
     .modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-      display: none; align-items: center; justify-content: center;
-      z-index: 9999;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
     }
     .modal-content {
-      background: #fff; color: #222; border-radius: 14px; width: 95%; max-width: 550px;
-      padding: 25px 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      animation: popIn 0.3s ease;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: min(520px, 90vw);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
-    @keyframes popIn { from{opacity:0;transform:scale(0.95);} to{opacity:1;transform:scale(1);} }
     .modal-header {
-      display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid #ddd; margin-bottom: 15px; padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .modal-header h2 { font-size: 1.4rem; margin: 0; }
-    .close-btn { background:none;border:none;font-size:1.6rem;cursor:pointer; }
-
-    .action-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
-    .action-buttons button {
-      flex: 1 1 45%; padding: 10px; font-weight: 600;
-      border-radius: 8px; border: none;
+    .modal-header h2 { margin: 0; font-size: 1.3rem; }
+    .close-btn {
+      background: none;
+      border: none;
+      color: rgba(148, 163, 184, 0.8);
+      font-size: 1.5rem;
+      cursor: pointer;
     }
-    .btn-call { background: #0ea5e9; color: #fff; }
-    .btn-msg { background: #10b981; color: #fff; }
-    .btn-pay { background: #fbbc04; color: #000; }
-    .btn-close { background: #dc2626; color: #fff; }
-
-    .field-group {
-      display: flex; gap: 10px; align-items: center; margin-top: 10px;
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
     }
-    .field-group input, .field-group select {
-      flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px;
+    .actions button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-weight: 600;
+      cursor: pointer;
     }
-
+    .btn-call { background: rgba(59, 130, 246, 0.2); color: #bfdbfe; }
+    .btn-msg { background: rgba(45, 212, 191, 0.18); color: #5eead4; }
+    .btn-pay { background: rgba(251, 188, 4, 0.2); color: #fde68a; }
+    .btn-close { background: rgba(248, 113, 113, 0.18); color: #fecaca; }
     .toast {
-      position: fixed; bottom: 20px; right: 20px; padding: 12px 18px;
-      border-radius: 8px; font-weight: 600; display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.95);
+      color: #0f172a;
+      font-weight: 600;
+      display: none;
     }
-    .toast.success { background: #16a34a; color: #fff; }
-    .toast.error { background: #dc2626; color: #fff; }
+    .toast.error { background: rgba(248, 113, 113, 0.95); color: #111827; }
+    .payment-row {
+      display: none;
+      gap: 10px;
+      align-items: center;
+    }
+    .payment-row input, .payment-row select {
+      flex: 1;
+    }
   </style>
 </head>
-
 <body>
-  <div class="dashboard">
-    <h1>Sales Dashboard</h1>
-    <p class="subtext">Search, manage, and update your client sales.</p>
-
-    <div class="search-section">
-      <input id="searchClient" placeholder="Client name">
-      <input id="searchCompany" placeholder="Company">
-      <input id="searchInvoice" placeholder="Invoice #">
-      <input id="searchProduct" placeholder="Product">
-      <button class="btn-primary" onclick="searchSales()">Search</button>
+  <header>
+    <div>
+      <h1>Sales dashboard</h1>
+      <p>Search and manage every sale recorded in the Client_List sheet.</p>
     </div>
+    <button class="primary" type="button" onclick="returnToHub()">← Back to workspace</button>
+  </header>
 
-    <table id="salesTable">
+  <section class="card">
+    <div class="search-grid">
+      <input id="searchClient" placeholder="Client" />
+      <input id="searchCompany" placeholder="Company" />
+      <input id="searchInvoice" placeholder="Invoice / ID" />
+      <input id="searchProduct" placeholder="Product" />
+    </div>
+    <button class="primary" type="button" onclick="searchSales()">Search sales</button>
+
+    <table>
       <thead>
         <tr>
-          <th>ID</th><th>Client</th><th>Company</th><th>Product</th><th>Value</th><th>Status</th>
+          <th>ID</th>
+          <th>Client</th>
+          <th>Company</th>
+          <th>Product</th>
+          <th>Value</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody id="salesBody">
-        <tr><td colspan="6" class="empty">No results found</td></tr>
+        <tr><td class="empty" colspan="6">Use the filters above to load sales.</td></tr>
       </tbody>
     </table>
-  </div>
+  </section>
 
-  <!-- MODAL -->
   <div id="saleModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="saleTitle">Sale Details</h2>
-        <button class="close-btn" onclick="closeModal()">×</button>
+        <h2 id="saleTitle">Sale details</h2>
+        <button class="close-btn" type="button" onclick="closeModal()">×</button>
       </div>
-      <div id="saleInfo"></div>
-
-      <div class="action-buttons">
-        <button class="btn-call" onclick="addContact('Call')">+ Call</button>
-        <button class="btn-msg" onclick="addContact('Message')">+ Message</button>
-        <button class="btn-pay" onclick="openPayment()">+ Payment</button>
-        <button class="btn-close" onclick="closeSale()">Close Sale</button>
+      <div id="saleInfo" style="font-size:0.95rem; line-height:1.5;"></div>
+      <div class="actions">
+        <button class="btn-call" type="button" onclick="addContact('Call')">Log call</button>
+        <button class="btn-msg" type="button" onclick="addContact('Message')">Log message</button>
+        <button class="btn-pay" type="button" onclick="togglePayment(true)">Register payment</button>
+        <button class="btn-close" type="button" onclick="closeModal()">Close</button>
       </div>
-
-      <div id="paymentSection" style="display:none; margin-top:10px;">
-        <div class="field-group">
-          <input id="paymentValue" type="number" placeholder="Amount ($)" step="0.01" min="0">
-          <select id="paymentMethod">
-            <option value="">Method</option>
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-            <option value="Check">Check</option>
-            <option value="Zelle">Zelle</option>
-          </select>
-        </div>
-        <button class="btn-primary" style="margin-top:10px;" onclick="applyPayment()">Apply Payment</button>
+      <div id="paymentSection" class="payment-row">
+        <input id="paymentValue" type="number" min="0" step="0.01" placeholder="Amount" />
+        <select id="paymentMethod">
+          <option value="">Method</option>
+          <option value="Cash">Cash</option>
+          <option value="Card">Card</option>
+          <option value="Check">Check</option>
+          <option value="Zelle">Zelle</option>
+        </select>
+        <button class="primary" type="button" onclick="applyPayment()">Apply</button>
       </div>
     </div>
   </div>
@@ -181,7 +223,7 @@
     let currentSale = null;
 
     function searchSales() {
-      const filtros = {
+      const filters = {
         nome: document.getElementById('searchClient').value.trim(),
         empresa: document.getElementById('searchCompany').value.trim(),
         invoice: document.getElementById('searchInvoice').value.trim(),
@@ -190,94 +232,99 @@
 
       google.script.run
         .withSuccessHandler(renderSales)
-        .withFailureHandler(err => showToast('Error searching sales', 'error'))
-        .buscarVendas(filtros);
+        .withFailureHandler(() => showToast('Unable to load sales.', true))
+        .buscarVendas(filters);
     }
 
     function renderSales(sales) {
-      const tbody = document.getElementById('salesBody');
-      tbody.innerHTML = '';
-
+      const body = document.getElementById('salesBody');
+      body.innerHTML = '';
       if (!sales || sales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty">No results found</td></tr>';
+        body.innerHTML = '<tr><td class="empty" colspan="6">No sales found.</td></tr>';
         return;
       }
-
-      sales.forEach(s => {
+      sales.forEach((sale) => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${s.id}</td>
-          <td>${s.cliente}</td>
-          <td>${s.empresa}</td>
-          <td>${s.produto}</td>
-          <td>$${parseFloat(s.valor).toFixed(2)}</td>
-          <td>${s.status}</td>
+          <td>${sale.id || ''}</td>
+          <td>${sale.cliente || '-'}</td>
+          <td>${sale.empresa || '-'}</td>
+          <td>${sale.produto || '-'}</td>
+          <td>$${Number(sale.valor || 0).toFixed(2)}</td>
+          <td>${sale.status || '-'}</td>
         `;
-        row.onclick = () => openSaleDetails(s);
-        tbody.appendChild(row);
+        row.addEventListener('click', () => openSale(sale));
+        body.appendChild(row);
       });
     }
 
-    function openSaleDetails(sale) {
+    function openSale(sale) {
       currentSale = sale;
-      document.getElementById('saleTitle').textContent = `Sale #${sale.id}`;
+      document.getElementById('saleTitle').textContent = `Sale ${sale.id}`;
       document.getElementById('saleInfo').innerHTML = `
-        <p><strong>Client:</strong> ${sale.cliente}</p>
-        <p><strong>Company:</strong> ${sale.empresa}</p>
-        <p><strong>Product:</strong> ${sale.produto}</p>
-        <p><strong>Value:</strong> $${parseFloat(sale.valor).toFixed(2)}</p>
-        <p><strong>Status:</strong> ${sale.status}</p>
-        <p><strong>Attempts:</strong> ${sale.tentativas || 0}</p>
+        <strong>Client:</strong> ${sale.cliente || '-'}<br />
+        <strong>Company:</strong> ${sale.empresa || '-'}<br />
+        <strong>Product:</strong> ${sale.produto || '-'}<br />
+        <strong>Value:</strong> $${Number(sale.valor || 0).toFixed(2)}<br />
+        <strong>Status:</strong> ${sale.status || '-'}<br />
+        <strong>Attempts:</strong> ${sale.tentativas || 0}
       `;
+      togglePayment(false);
       document.getElementById('saleModal').style.display = 'flex';
     }
 
     function closeModal() {
       document.getElementById('saleModal').style.display = 'none';
-      document.getElementById('paymentSection').style.display = 'none';
+      togglePayment(false);
+      currentSale = null;
     }
 
     function addContact(type) {
       if (!currentSale) return;
       google.script.run
-        .withSuccessHandler(res => {
-          showToast(`${type} logged (${res.tentativas} total)`, 'success');
+        .withSuccessHandler((res) => {
+          showToast(`${type} logged. Total attempts: ${res.tentativas}`);
           searchSales();
         })
-        .withFailureHandler(() => showToast('Error adding contact', 'error'))
+        .withFailureHandler(() => showToast('Unable to log contact.', true))
         .registrarTentativaContato(currentSale.id, type);
     }
 
-    function openPayment() {
-      document.getElementById('paymentSection').style.display = 'block';
+    function togglePayment(show) {
+      document.getElementById('paymentSection').style.display = show ? 'grid' : 'none';
     }
 
     function applyPayment() {
-      const value = document.getElementById('paymentValue').value;
+      if (!currentSale) return;
+      const value = parseFloat(document.getElementById('paymentValue').value || '0');
       const method = document.getElementById('paymentMethod').value;
-      if (!value || !method) return showToast('Fill all payment fields', 'error');
-
+      if (!value || !method) {
+        showToast('Enter payment value and method.', true);
+        return;
+      }
       google.script.run
-        .withSuccessHandler(res => {
-          showToast(`Payment added. Total paid: $${res.total.toFixed(2)}`, 'success');
-          document.getElementById('paymentSection').style.display = 'none';
+        .withSuccessHandler((res) => {
+          showToast(`Payment recorded. Total paid $${res.total.toFixed(2)}`);
+          togglePayment(false);
           searchSales();
         })
-        .withFailureHandler(() => showToast('Error registering payment', 'error'))
-        .registrarPagamento(currentSale.id, parseFloat(value), method);
+        .withFailureHandler(() => showToast('Unable to register payment.', true))
+        .registrarPagamento(currentSale.id, value, method);
     }
 
-    function closeSale() {
-      showToast('Sale marked as completed ✔️', 'success');
-      closeModal();
-    }
-
-    function showToast(msg, type) {
+    function showToast(message, isError = false) {
       const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      toast.className = `toast${isError ? ' error' : ''}`;
       toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', 2500);
+      setTimeout(() => (toast.style.display = 'none'), 2600);
+    }
+
+    function returnToHub() {
+      google.script.run
+        .withSuccessHandler(() => google.script.host.close())
+        .withFailureHandler(() => showToast('Unable to return.', true))
+        .retornarAoMenuPrincipal();
     }
   </script>
 </body>

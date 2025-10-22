@@ -1,2135 +1,301 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Painel Administrativo — F/Design Solutions v2.0</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Control Center · F/Design Solutions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --bg: #0f172a;
+      --card: rgba(15, 23, 42, 0.88);
+      --border: rgba(148, 163, 184, 0.2);
+      --accent: #fbbc04;
+      --accent-blue: #60a5fa;
+      --text: #e2e8f0;
+      --muted: rgba(148, 163, 184, 0.8);
+      color-scheme: dark;
     }
-
+    *, *::before, *::after { box-sizing: border-box; }
     body {
-      font-family: 'Inter', sans-serif;
-      background: #f7f8fa;
-      color: #222;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* ========================================= */
-    /* SIDEBAR */
-    /* ========================================= */
-    .sidebar {
-      width: 240px;
-      background: #ffffff;
-      border-right: 1px solid #e6e6e6;
+      margin: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: radial-gradient(circle at top right, rgba(96, 165, 250, 0.2), rgba(15, 23, 42, 0.95));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 36px;
       display: flex;
       flex-direction: column;
-      padding: 24px 0;
-      z-index: 2;
+      gap: 24px;
     }
-
-    .sidebar h2 {
-      font-weight: 600;
-      font-size: 16px;
-      margin: 0 20px 24px;
-      color: #111;
-    }
-
-    .menu-item {
-      padding: 12px 20px;
-      cursor: pointer;
-      border-left: 3px solid transparent;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: 0.2s;
-      color: #333;
-      font-weight: 500;
-      user-select: none;
-    }
-
-    .menu-item:hover {
-      background: #f3f4f6;
-    }
-
-    .menu-item.active {
-      background: #f0f2ff;
-      border-left: 3px solid #2b5797;
-      color: #2b5797;
-      font-weight: 600;
-    }
-
-    .logout {
-      margin-top: auto;
-      padding: 12px 20px;
-      background: #fef2f2;
-      color: #b91c1c;
-      font-weight: 600;
-      text-align: center;
-      cursor: pointer;
-      border-top: 1px solid #eee;
-      transition: 0.2s;
-    }
-
-    .logout:hover {
-      background: #fee2e2;
-    }
-
-    /* ========================================= */
-    /* CONTEÚDO PRINCIPAL */
-    /* ========================================= */
-    .content {
-      flex: 1;
-      padding: 32px 48px;
-      overflow-y: auto;
-      background: #f9fafb;
-      position: relative;
-      z-index: 1;
-    }
-
-    .content-header {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    h1 {
-      font-size: 22px;
-      margin-bottom: 24px;
-      color: #111827;
-      font-weight: 600;
-    }
-
-    .section {
-      display: none;
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    /* ========================================= */
-    /* KPIs */
-    /* ========================================= */
-    .kpi-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-      margin-bottom: 40px;
-    }
-
-    .kpi-card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    .kpi-title {
-      font-size: 13px;
-      color: #6b7280;
-      margin-bottom: 4px;
-    }
-
-    .kpi-value {
-      font-size: 20px;
-      font-weight: 600;
-      color: #1f2937;
-    }
-
-    /* ========================================= */
-    /* TABELAS COM ACCORDION */
-    /* ========================================= */
-    .data-table {
-      width: 100%;
-      background: #fff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      margin-bottom: 24px;
-    }
-
-    .data-table table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .data-table th {
-      padding: 12px 16px;
-      background: #f0f2ff;
-      text-align: left;
-      font-weight: 600;
-      font-size: 13px;
-      color: #374151;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    .data-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid #f3f4f6;
-      font-size: 14px;
-    }
-
-    .data-table tbody tr.main-row {
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .data-table tbody tr.main-row:hover {
-      background: #f9fafb;
-    }
-
-    .data-table tbody tr.main-row.expanded {
-      background: #f0f2ff;
-    }
-
-    /* Linha de detalhes (accordion) */
-    .details-row {
-      display: none;
-      background: #fafbfc;
-    }
-
-    .details-row.show {
-      display: table-row;
-    }
-
-    .details-row td {
-      padding: 0;
-      border-bottom: 2px solid #e5e7eb;
-    }
-
-    .details-content {
-      padding: 24px;
-      animation: slideDown 0.3s ease;
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* ========================================= */
-    /* CARDS DE DETALHES */
-    /* ========================================= */
-    .detail-card {
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .detail-header {
-      font-size: 16px;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid #f0f2ff;
-    }
-
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .detail-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .detail-label {
-      font-size: 12px;
-      color: #6b7280;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .detail-value {
-      font-size: 14px;
-      color: #111827;
-      font-weight: 500;
-    }
-
-    /* ========================================= */
-    /* BADGES E INDICADORES */
-    /* ========================================= */
-    .status-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .status-ativo {
-      background: #d1fae5;
-      color: #065f46;
-    }
-
-    .status-inativo {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .indicator {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      margin-right: 6px;
-    }
-
-    .indicator-green {
-      background: #10b981;
-    }
-
-    .indicator-yellow {
-      background: #f59e0b;
-    }
-
-    .indicator-burgundy {
-      background: #991b1b;
-    }
-
-    .indicator-gray {
-      background: #9ca3af;
-    }
-
-    /* ========================================= */
-    /* MÉTRICAS VISUAIS */
-    /* ========================================= */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .metric-box {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      padding: 12px;
-      text-align: center;
-    }
-
-    .metric-label {
-      font-size: 11px;
-      color: #6b7280;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .metric-value {
-      font-size: 18px;
-      font-weight: 600;
-      color: #111827;
-    }
-
-    .metric-value.good {
-      color: #059669;
-    }
-
-    .metric-value.warning {
-      color: #d97706;
-    }
-
-    .metric-value.critical {
-      color: #dc2626;
-    }
-
-    /* ========================================= */
-    /* BOTÕES DE AÇÃO */
-    /* ========================================= */
-    .action-buttons {
-      display: flex;
-      gap: 8px;
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid #e5e7eb;
-    }
-
-    .btn {
-      padding: 8px 16px;
+    header { display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 1.9rem; }
+    header p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 12px; }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #ffd250);
       border: none;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-weight: 600;
+      color: #111827;
       cursor: pointer;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
-
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .btn-edit {
-      background: #eff6ff;
-      color: #1e40af;
-    }
-
-    .btn-edit:hover {
-      background: #dbeafe;
-    }
-
-    .btn-remove {
-      background: #fef2f2;
-      color: #b91c1c;
-    }
-
-    .btn-remove:hover {
-      background: #fee2e2;
-    }
-
-    .btn-deactivate {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .btn-deactivate:hover {
-      background: #fde68a;
-    }
-
-    .btn-add {
-      background: #2b5797;
-      color: #ffffff;
-      padding: 10px 20px;
-      margin-bottom: 16px;
-    }
-
-    .btn-add:hover {
-      background: #1e3a5f;
-    }
-
-    .btn-refresh {
-      background: #1f2937;
-      color: #ffffff;
-      padding: 10px 18px;
+    button.secondary {
+      background: rgba(59, 130, 246, 0.18);
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      color: #bfdbfe;
+      padding: 12px 18px;
+      border-radius: 14px;
       font-weight: 600;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
     }
-
-    .btn-refresh:hover:not(:disabled) {
-      background: #111827;
+    .grid { display: grid; gap: 20px; }
+    .grid.metrics { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 30px 60px rgba(15, 23, 42, 0.45);
     }
-
-    /* ========================================= */
-    /* ÍCONE DE EXPANSÃO */
-    /* ========================================= */
-    .expand-icon {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      text-align: center;
-      line-height: 20px;
-      transition: transform 0.3s;
-      color: #6b7280;
-    }
-
-    .expand-icon.expanded {
-      transform: rotate(90deg);
-    }
-
-    /* ========================================= */
-    /* GRÁFICOS */
-    /* ========================================= */
-    .chart-container {
-      background: #fff;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 24px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    .chart-container h3 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 16px;
-    }
-
-    /* ========================================= */
-    /* BARRAS DE FILTRO */
-    /* ========================================= */
-    .filters-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 16px;
-      align-items: flex-end;
-    }
-
-    .filter-item {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-width: 160px;
-    }
-
-    .filter-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #4b5563;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-
-    .filter-select,
-    .filter-input {
-      padding: 8px 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-size: 13px;
-      background: #fff;
-      color: #111827;
-    }
-
-    .filters-actions {
-      display: flex;
-      gap: 8px;
-      margin-left: auto;
-    }
-
-    .btn-clear {
-      background: #f3f4f6;
-      color: #374151;
-    }
-
-    .btn-clear:hover {
-      background: #e5e7eb;
-    }
-
-    .summary-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 12px;
-      font-size: 14px;
-      color: #4b5563;
-      font-weight: 500;
-    }
-
-    .summary-bar span {
-      background: #f3f4f6;
-      border-radius: 999px;
-      padding: 6px 12px;
-    }
-
-    /* ========================================= */
-    /* UTILITÁRIOS */
-    /* ========================================= */
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #6b7280;
-      font-size: 16px;
-    }
-
-    .error-message {
-      background: #fee2e2;
-      color: #991b1b;
-      padding: 16px;
-      border-radius: 8px;
-      margin: 20px 0;
-      font-weight: 500;
-    }
-
-    .alert {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #10b981;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 500;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-      animation: fadeSlide 3s ease forwards;
-      z-index: 1000;
-    }
-
-    @keyframes fadeSlide {
-      0% {opacity: 0; transform: translateY(-10px);}
-      10% {opacity: 1; transform: translateY(0);}
-      90% {opacity: 1;}
-      100% {opacity: 0; transform: translateY(-10px);}
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #9ca3af;
-    }
-
-    .empty-state-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-
-    /* ========================================= */
-    /* SCROLLBAR CUSTOMIZADA */
-    /* ========================================= */
-    .content::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .content::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-
-    .content::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 4px;
-    }
-
-    .content::-webkit-scrollbar-thumb:hover {
-      background: #a1a1a1;
-    }
+    .card h2 { margin: 0 0 6px; font-size: 0.95rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .card .value { font-size: 2rem; font-weight: 600; }
+    .section-title { font-size: 1.2rem; font-weight: 600; margin: 24px 0 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.2); text-align: left; font-size: 0.95rem; }
+    th { color: var(--muted); }
+    tr:hover { background: rgba(59, 130, 246, 0.1); }
+    .chips { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+    .chip { padding: 6px 10px; border-radius: 999px; font-size: 0.75rem; background: rgba(148, 163, 184, 0.2); color: var(--muted); }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: rgba(96, 165, 250, 0.95); color: #0f172a; padding: 12px 18px; border-radius: 12px; font-weight: 600; display: none; }
+    .toast.error { background: rgba(248, 113, 113, 0.95); color: #111827; }
   </style>
 </head>
 <body>
-  <!-- 🔙 BOTÃO DE RETORNO -->
-  <button class="botao-voltar" onclick="voltarHome()">← Voltar ao Painel</button>
+  <header>
+    <div>
+      <h1>Admin control center</h1>
+      <p>Real-time overview of sales, quotes and team performance.</p>
+    </div>
+    <div class="actions">
+      <button class="secondary" type="button" onclick="refresh()">Refresh data</button>
+      <button class="primary" type="button" onclick="logout()">Sign out</button>
+    </div>
+  </header>
 
-  <style>
-    .botao-voltar {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: #fff;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: 0.2s;
-      z-index: 9999;
-    }
-    .botao-voltar:hover {
-      background: rgba(255,255,255,0.25);
-    }
-  </style>
+  <section id="loadingState" class="card" style="text-align:center;">Loading analytics…</section>
+  <section id="errorState" class="card" style="display:none; text-align:center; color:#fecaca;"></section>
 
-  <script>
-    function voltarHome() {
-      window.location.href = "homeVendedor.html";
-    }
-  </script>
-
-  <!-- ====================================== -->
-  <!-- SIDEBAR LATERAL -->
-  <!-- ====================================== -->
-  <aside class="sidebar">
-    <h2>F/Design Admin v2.0</h2>
-    <div class="menu-item active" onclick="showSection('reports', this)">📊 Reports</div>
-    <div class="menu-item" onclick="showSection('users', this)">👥 Users</div>
-    <div class="menu-item" onclick="showSection('budgets', this)">💼 Budgets</div>
-    <div class="menu-item" onclick="showSection('sales', this)">💰 Sales</div>
-    <div class="menu-item" onclick="showSection('settings', this)">⚙️ Settings</div>
-    <div class="logout" onclick="encerrarSessao()">Sair</div>
-  </aside>
-
-  <!-- ====================================== -->
-  <!-- CONTEÚDO PRINCIPAL -->
-  <!-- ====================================== -->
-  <main class="content">
-    <div class="content-header">
-      <!-- Botão manual para atualização pontual dos dados -->
-      <button id="refreshDataButton" class="btn btn-refresh" type="button">🔄 Atualizar Dados</button>
+  <div id="dashboardContent" style="display:none;">
+    <div class="grid metrics">
+      <div class="card">
+        <h2>Total sales value</h2>
+        <div id="metricSalesValue" class="value">$0.00</div>
+      </div>
+      <div class="card">
+        <h2>Sales registered</h2>
+        <div id="metricSalesCount" class="value">0</div>
+      </div>
+      <div class="card">
+        <h2>Quotes in pipeline</h2>
+        <div id="metricQuotes" class="value">0</div>
+      </div>
+      <div class="card">
+        <h2>Conversion rate</h2>
+        <div id="metricConversion" class="value">0%</div>
+      </div>
+      <div class="card">
+        <h2>Total commissions</h2>
+        <div id="metricCommission" class="value">$0.00</div>
+      </div>
     </div>
 
-    <!-- ===================== -->
-    <!-- SECTION 1: REPORTS -->
-    <!-- ===================== -->
-    <section id="reports" class="section active">
-      <h1>📊 Reports & Analytics</h1>
-      <div id="reportsLoading" class="loading" data-default-message="Carregando relatórios...">Carregando relatórios...</div>
-      <div id="reportsContent" style="display:none;">
-        <div class="kpi-container">
-          <div class="kpi-card">
-            <div class="kpi-title">Total de Vendas</div>
-            <div id="kpi-totalVendas" class="kpi-value">$0.00</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-title">Comissões Pagas</div>
-            <div id="kpi-totalComissoes" class="kpi-value">$0.00</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-title">Orçamentos Abertos</div>
-            <div id="kpi-orcamentosAbertos" class="kpi-value">0</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-title">Vendedores Ativos</div>
-            <div id="kpi-vendedoresAtivos" class="kpi-value">0</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-title">Taxa de Conversão</div>
-            <div id="kpi-taxaConversao" class="kpi-value">0%</div>
-          </div>
-        </div>
+    <h2 class="section-title">Team performance</h2>
+    <div class="card">
+      <table id="usersTable">
+        <thead>
+          <tr>
+            <th>Associate</th>
+            <th>Role</th>
+            <th>Sales</th>
+            <th>Quotes</th>
+            <th>Sales value</th>
+            <th>Commissions</th>
+            <th>Conversion</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-        <div class="chart-container">
-          <h3>Vendas por Tipo</h3>
-          <div id="chartVendasPorTipo" style="height:300px;"></div>
-        </div>
+    <h2 class="section-title">Recent sales</h2>
+    <div class="card">
+      <table id="salesTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Seller</th>
+            <th>Product</th>
+            <th>Value</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-        <div class="chart-container">
-          <h3>Orçamentos por Status</h3>
-          <div id="chartOrcPorStatus" style="height:300px;"></div>
-        </div>
-      </div>
-    </section>
+    <h2 class="section-title">Recent quotes</h2>
+    <div class="card">
+      <table id="quotesTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Seller</th>
+            <th>Product</th>
+            <th>Value</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
 
-    <!-- ===================== -->
-    <!-- SECTION 2: USERS -->
-    <!-- ===================== -->
-    <section id="users" class="section">
-      <h1>👥 Users Management</h1>
-      <button class="btn btn-add" onclick="addNewUser()">➕ Add New Employee</button>
-      <div id="usersLoading" class="loading" data-default-message="Carregando usuários...">Carregando usuários...</div>
-      <div id="usersContent" style="display:none;">
-        <div class="data-table">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:30px;"></th>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>Status</th>
-                <th>Total Vendas</th>
-                <th>Taxa Conversão</th>
-                <th>Comissão</th>
-              </tr>
-            </thead>
-            <tbody id="usersTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+  <div id="toast" class="toast"></div>
 
-    <!-- ===================== -->
-    <!-- SECTION 3: BUDGETS -->
-    <!-- ===================== -->
-    <section id="budgets" class="section">
-      <h1>💼 Budgets & Quotes</h1>
-      <div id="budgetsLoading" class="loading" data-default-message="Carregando orçamentos...">Carregando orçamentos...</div>
-      <div id="budgetsContent" style="display:none;">
-        <div class="filters-bar" id="budgetFiltersBar">
-          <div class="filter-item">
-            <label class="filter-label" for="budgetFilterClient">Cliente</label>
-            <select id="budgetFilterClient" class="filter-select"></select>
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="budgetFilterResponsible">Responsável</label>
-            <select id="budgetFilterResponsible" class="filter-select"></select>
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="budgetFilterType">Tipo</label>
-            <select id="budgetFilterType" class="filter-select"></select>
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="budgetFilterStatus">Status</label>
-            <select id="budgetFilterStatus" class="filter-select"></select>
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="budgetFilterStart">Início</label>
-            <input id="budgetFilterStart" class="filter-input" type="date">
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="budgetFilterEnd">Fim</label>
-            <input id="budgetFilterEnd" class="filter-input" type="date">
-          </div>
-          <div class="filters-actions">
-            <button class="btn btn-clear" type="button" onclick="resetBudgetFilters()">Limpar</button>
-          </div>
-        </div>
-        <div class="summary-bar" id="budgetSummary">
-          <span>Total de orçamentos: 0</span>
-          <span>Somatório: $0.00</span>
-        </div>
-        <div class="data-table">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:30px;"></th>
-                <th>Data</th>
-                <th>Tipo</th>
-                <th>Cliente</th>
-                <th>Valor</th>
-                <th>Status</th>
-                <th>Responsável</th>
-              </tr>
-            </thead>
-            <tbody id="budgetsTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== -->
-    <!-- SECTION 4: SALES -->
-    <!-- ===================== -->
-    <section id="sales" class="section">
-      <h1>💰 Sales History</h1>
-      <div id="salesLoading" class="loading" data-default-message="Carregando vendas...">Carregando vendas...</div>
-      <div id="salesContent" style="display:none;">
-        <div class="filters-bar" id="salesFiltersBar">
-          <div class="filter-item">
-            <label class="filter-label" for="salesFilterClient">Cliente</label>
-            <select id="salesFilterClient" class="filter-select"></select>
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="salesFilterVendor">Vendedor</label>
-            <select id="salesFilterVendor" class="filter-select"></select>
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="salesFilterType">Tipo</label>
-            <select id="salesFilterType" class="filter-select"></select>
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="salesFilterStart">Início</label>
-            <input id="salesFilterStart" class="filter-input" type="date">
-          </div>
-          <div class="filter-item">
-            <label class="filter-label" for="salesFilterEnd">Fim</label>
-            <input id="salesFilterEnd" class="filter-input" type="date">
-          </div>
-          <div class="filters-actions">
-            <button class="btn btn-clear" type="button" onclick="resetSalesFilters()">Limpar</button>
-          </div>
-        </div>
-        <div class="summary-bar" id="salesSummary">
-          <span>Total de vendas: 0</span>
-          <span>Somatório: $0.00</span>
-          <span>Comissões: $0.00</span>
-        </div>
-        <div class="data-table">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:30px;"></th>
-                <th>Data</th>
-                <th>Tipo</th>
-                <th>Cliente</th>
-                <th>Valor</th>
-                <th>Comissão</th>
-                <th>Vendedor</th>
-              </tr>
-            </thead>
-            <tbody id="salesTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== -->
-    <!-- SECTION 5: SETTINGS -->
-    <!-- ===================== -->
-    <section id="settings" class="section">
-      <h1>⚙️ System Settings</h1>
-      <div id="settingsLoading" class="loading" data-default-message="Carregando configurações...">Carregando configurações...</div>
-      <div id="settingsContent" style="display:none;">
-        <div class="detail-card">
-          <div class="detail-header">Configurações do Sistema</div>
-          <div id="settingsGrid" class="detail-grid"></div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-  
-  <!-- ========================================= -->
-  <!-- JAVASCRIPT PRINCIPAL -->
-  <!-- ========================================= -->
   <script>
-    // =========================================
-    // VARIÁVEIS GLOBAIS
-    // =========================================
     let adminData = null;
-    let refreshButton = null;
-    let filteredBudgets = [];
-    let filteredSales = [];
-    let budgetFiltersInitialized = false;
-    let salesFiltersInitialized = false;
+    document.addEventListener('DOMContentLoaded', refresh);
 
-    const FALLBACK_TEXT = '–';
-
-    const EMPTY_METRICS = Object.freeze({
-      communication: { messages: 0, calls: 0, total: 0 },
-      effectiveness: { respPos: 0, respNeg: 0, prr: 0 },
-      conversion: { totalBudgets: 0, converted: 0, rate: 0 },
-      financial: {
-        avgSaleValue: 0,
-        totalRevenue: 0,
-        totalCommission: 0,
-        profitabilityPerHour: 0
-      },
-      derived: { oei: 0, ce: 0, hp: 0, prr: 0, nep: 0 }
-    });
-
-    function normalizeMetrics(metrics) {
-      const base = JSON.parse(JSON.stringify(EMPTY_METRICS));
-      if (!metrics || typeof metrics !== 'object') {
-        return base;
-      }
-      return {
-        communication: { ...base.communication, ...(metrics.communication || {}) },
-        effectiveness: { ...base.effectiveness, ...(metrics.effectiveness || {}) },
-        conversion: { ...base.conversion, ...(metrics.conversion || {}) },
-        financial: { ...base.financial, ...(metrics.financial || {}) },
-        derived: { ...base.derived, ...(metrics.derived || {}) }
-      };
-    }
-
-    function cloneMetrics(metrics) {
-      return normalizeMetrics(metrics || {});
-    }
-
-    function getSafeId(value, prefix = 'id') {
-      const base = value ? String(value) : `${prefix}-${Math.random().toString(36).slice(2)}`;
-      return `${prefix}-${base.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-    }
-
-    function formatCurrency(value) {
-      const numero = Number(value);
-      return Number.isFinite(numero) ? `$${numero.toFixed(2)}` : '$0.00';
-    }
-
-    function formatPercent(value) {
-      const numero = Number(value);
-      return Number.isFinite(numero) ? `${numero.toFixed(1)}%` : '0%';
-    }
-
-    function formatPercentFromDecimal(value) {
-      const numero = Number(value);
-      if (!Number.isFinite(numero)) {
-        return '0%';
-      }
-      if (numero > 1) {
-        return `${numero.toFixed(0)}%`;
-      }
-      return `${(numero * 100).toFixed(0)}%`;
-    }
-
-    function formatNumber(value) {
-      const numero = Number(value);
-      return Number.isFinite(numero) ? numero.toString() : '0';
-    }
-
-    function formatText(value) {
-      return value ? String(value) : FALLBACK_TEXT;
-    }
-
-    function getMetricLevel(value, goodThreshold, warningThreshold) {
-      const numero = Number(value);
-      if (!Number.isFinite(numero)) {
-        return '';
-      }
-      if (numero >= goodThreshold) {
-        return 'good';
-      }
-      if (numero >= warningThreshold) {
-        return 'warning';
-      }
-      return 'critical';
-    }
-
-    function buildDateRange(start, end) {
-      const startDate = start ? new Date(`${start}T00:00:00`) : null;
-      const endDate = end ? new Date(`${end}T23:59:59`) : null;
-      return {
-        startDate: startDate && !isNaN(startDate.getTime()) ? startDate : null,
-        endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null
-      };
-    }
-
-    function getDateFromRecord(record, isoKey, textKey) {
-      if (!record) {
-        return null;
-      }
-      if (record[isoKey]) {
-        const dataIso = new Date(record[isoKey]);
-        if (!isNaN(dataIso.getTime())) {
-          return dataIso;
-        }
-      }
-      const texto = record[textKey];
-      if (texto && texto.includes('/')) {
-        const partes = texto.split('/');
-        if (partes.length === 3) {
-          const [dia, mes, ano] = partes.map(p => parseInt(p, 10));
-          const dataTexto = new Date(ano, mes - 1, dia);
-          if (!isNaN(dataTexto.getTime())) {
-            return dataTexto;
-          }
-        }
-      }
-      return null;
-    }
-
-    function deepClone(object) {
-      return JSON.parse(JSON.stringify(object || {}));
-    }
-
-    // Mapeia os elementos de loading/conteúdo para alternar entre estados de carregamento e erro
-    const sectionLoadingMap = [
-      { loadingId: 'reportsLoading', contentId: 'reportsContent' },
-      { loadingId: 'usersLoading', contentId: 'usersContent' },
-      { loadingId: 'budgetsLoading', contentId: 'budgetsContent' },
-      { loadingId: 'salesLoading', contentId: 'salesContent' },
-      { loadingId: 'settingsLoading', contentId: 'settingsContent' }
-    ];
-
-    // Reativa o placeholder padrão durante requisições e oculta conteúdos desatualizados
-    function setLoadingState(isLoading) {
-      sectionLoadingMap.forEach(({ loadingId, contentId }) => {
-        const loadingEl = document.getElementById(loadingId);
-        const contentEl = document.getElementById(contentId);
-
-        if (isLoading) {
-          if (loadingEl) {
-            const defaultMessage = loadingEl.getAttribute('data-default-message');
-            if (defaultMessage) {
-              loadingEl.textContent = defaultMessage;
-            }
-            loadingEl.style.display = 'block';
-          }
-          if (contentEl) {
-            contentEl.style.display = 'none';
-          }
-        } else if (loadingEl) {
-          loadingEl.style.display = 'none';
-        }
-      });
-    }
-
-    // Evita múltiplas chamadas concorrentes desabilitando o botão durante o carregamento
-    function toggleRefreshButton(isLoading) {
-      if (!refreshButton) return;
-      if (isLoading) {
-        if (!refreshButton.dataset.originalText) {
-          refreshButton.dataset.originalText = refreshButton.textContent;
-        }
-        refreshButton.disabled = true;
-        refreshButton.textContent = '⏳ Atualizando...';
-      } else {
-        refreshButton.disabled = false;
-        const originalText = refreshButton.dataset.originalText || '🔄 Atualizar Dados';
-        refreshButton.textContent = originalText;
-      }
-    }
-
-    function finalizarCarregamento() {
-      toggleRefreshButton(false);
-    }
-
-    // =========================================
-    // INICIALIZAÇÃO
-    // =========================================
-    window.addEventListener('DOMContentLoaded', function () {
-      console.log('🚀 Painel Administrativo v2.0 iniciado...');
-      google.charts.load('current', { packages: ['corechart'] });
-      refreshButton = document.getElementById('refreshDataButton');
-      if (refreshButton) {
-        // Atualização agora depende de ação manual do administrador
-        refreshButton.addEventListener('click', () => {
-          carregarDadosAdmin();
-        });
-      }
-      carregarDadosAdmin();
-    });
-
-    // =========================================
-    // FUNÇÃO PRINCIPAL: CARREGAR DADOS
-    // =========================================
-    function carregarDadosAdmin() {
-      setLoadingState(true);
-      toggleRefreshButton(true);
+    function refresh() {
+      document.getElementById('dashboardContent').style.display = 'none';
+      document.getElementById('errorState').style.display = 'none';
+      document.getElementById('loadingState').style.display = 'block';
       google.script.run
-        .withSuccessHandler(onSuccessCarregarDados)
-        .withFailureHandler(onErrorCarregarDados)
+        .withSuccessHandler(onDataLoaded)
+        .withFailureHandler(() => showError('Unable to load administrative data.'))
         .obterDadosAdmin();
     }
 
-    function onSuccessCarregarDados(response) {
-      console.log('✅ Dados recebidos:', response);
+    function onDataLoaded(response) {
+      document.getElementById('loadingState').style.display = 'none';
       if (!response || !response.success) {
-        finalizarCarregamento();
-        showError('Erro ao carregar dados: ' + (response?.message || 'Falha desconhecida.'));
+        showError(response?.message || 'Unable to load administrative data.');
         return;
       }
-
-      setLoadingState(false);
-      adminData = {
-        reports: response.reports || {},
-        settings: response.settings || {},
-        budgets: Array.isArray(response.budgets) ? response.budgets : [],
-        sales: Array.isArray(response.sales) ? response.sales : [],
-        users: Array.isArray(response.users)
-          ? response.users.map((user, index) => {
-              const normalized = cloneMetrics(user.metrics);
-              const safeId = getSafeId(user.id || user.email || index, 'user');
-              return {
-                ...user,
-                metrics: deepClone(normalized),
-                _safeId: safeId,
-                _index: index,
-                _baselineMetrics: deepClone(normalized),
-                _metricsCurrent: deepClone(normalized),
-                _lastFilter: null
-              };
-            })
-          : []
-      };
-
-      filteredBudgets = [...adminData.budgets];
-      filteredSales = [...adminData.sales];
-      budgetFiltersInitialized = false;
-      salesFiltersInitialized = false;
-
-      try {
-        renderReports(adminData.reports);
-        renderUsers(adminData.users);
-        renderBudgets(adminData.budgets);
-        renderSales(adminData.sales);
-        renderSettings(adminData.settings);
-        showAlert('✅ Dados carregados com sucesso!');
-      } catch (renderError) {
-        console.error('⚠️ Falha ao renderizar o painel:', renderError);
-        showError('Erro ao exibir os dados no painel. Verifique os logs.');
-      } finally {
-        finalizarCarregamento();
-      }
+      adminData = response;
+      document.getElementById('dashboardContent').style.display = 'block';
+      renderMetrics(response.reports);
+      renderUsers(response.users);
+      renderSales(response.sales);
+      renderQuotes(response.budgets);
     }
 
-    function onErrorCarregarDados(error) {
-      console.error('❌ Erro ao carregar dados:', error);
-      finalizarCarregamento();
-      showError('Erro de conexão: ' + (error?.message || 'Erro desconhecido.'));
+    function renderMetrics(reports) {
+      const totals = reports?.totals || {};
+      document.getElementById('metricSalesValue').textContent = formatCurrency(totals.salesValue);
+      document.getElementById('metricSalesCount').textContent = totals.salesCount || 0;
+      document.getElementById('metricQuotes').textContent = totals.quotesCount || 0;
+      document.getElementById('metricConversion').textContent = `${Number(reports?.conversionRate || 0).toFixed(1)}%`;
+      document.getElementById('metricCommission').textContent = formatCurrency(totals.commissionTotal);
     }
 
-    // =========================================
-    // 📊 RENDERIZAÇÃO: REPORTS
-    // =========================================
-    function renderReports(reports) {
-      const loadingEl = document.getElementById('reportsLoading');
-      const contentEl = document.getElementById('reportsContent');
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (contentEl) contentEl.style.display = 'block';
-
-      const safeReports = reports || {}; // Proteção contra retornos parciais do backend
-      const kpis = safeReports.kpis || {};
-
-      const totalVendas = Number(kpis.totalVendas || 0);
-      const totalComissoes = Number(kpis.totalComissoes || 0);
-      const orcamentosAbertos = Number(kpis.orcamentosAbertos || 0);
-      const vendedoresAtivos = Number(kpis.vendedoresAtivos || 0);
-      const taxaConversao = Number(kpis.taxaConversao || 0);
-
-      document.getElementById('kpi-totalVendas').textContent = '$' + totalVendas.toFixed(2);
-      document.getElementById('kpi-totalComissoes').textContent = '$' + totalComissoes.toFixed(2);
-      document.getElementById('kpi-orcamentosAbertos').textContent = orcamentosAbertos.toString();
-      document.getElementById('kpi-vendedoresAtivos').textContent = vendedoresAtivos.toString();
-      document.getElementById('kpi-taxaConversao').textContent = taxaConversao.toFixed(1) + '%';
-
-      const chartVendasContainer = document.getElementById('chartVendasPorTipo');
-      const chartOrcContainer = document.getElementById('chartOrcPorStatus');
-
-      const grafVendas = Array.isArray(safeReports.grafVendasPorTipo) ? safeReports.grafVendasPorTipo : [];
-      const grafOrc = Array.isArray(safeReports.grafOrcPorStatus) ? safeReports.grafOrcPorStatus : [];
-
-      google.charts.setOnLoadCallback(function () {
-        try {
-          if (grafVendas.length > 1 && chartVendasContainer) {
-            const dataVendas = google.visualization.arrayToDataTable(grafVendas);
-            const chartVendas = new google.visualization.PieChart(chartVendasContainer);
-            chartVendas.draw(dataVendas, {
-              title: '',
-              pieHole: 0.4,
-              colors: ['#2b5797', '#fbbc04', '#34a853'],
-              legend: { position: 'bottom' },
-            });
-          } else if (chartVendasContainer) {
-            chartVendasContainer.innerHTML = '<p style="text-align:center;color:#6b7280;">Sem dados suficientes</p>';
-          }
-
-          if (grafOrc.length > 1 && chartOrcContainer) {
-            const dataOrc = google.visualization.arrayToDataTable(grafOrc);
-            const chartOrc = new google.visualization.PieChart(chartOrcContainer);
-            chartOrc.draw(dataOrc, {
-              title: '',
-              pieHole: 0.4,
-              colors: ['#2b5797', '#fbbc04', '#ea4335'],
-              legend: { position: 'bottom' },
-            });
-          } else if (chartOrcContainer) {
-            chartOrcContainer.innerHTML = '<p style="text-align:center;color:#6b7280;">Sem dados suficientes</p>';
-          }
-        } catch (err) {
-          console.warn('⚠️ Erro ao desenhar gráficos:', err);
-        }
-      });
-    }
-
-    // =========================================
-    // 👥 RENDERIZAÇÃO: USERS (COM ACCORDION)
-    // =========================================
     function renderUsers(users) {
-      const loading = document.getElementById('usersLoading');
-      const content = document.getElementById('usersContent');
-      if (loading) loading.style.display = 'none';
-      if (content) content.style.display = 'block';
-      const tbody = document.getElementById('usersTableBody');
+      const tbody = document.querySelector('#usersTable tbody');
       tbody.innerHTML = '';
-
-      const listaUsuarios = Array.isArray(users) ? users : [];
-
-      if (listaUsuarios.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum usuário cadastrado</div></td></tr>';
+      if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted);">No users found.</td></tr>';
         return;
       }
-
-      listaUsuarios.forEach((user, index) => {
-        user._index = index;
-        user._safeId = user._safeId || getSafeId(user.id || user.email || index, 'user');
-
-        const baseMetrics = cloneMetrics(user.metrics);
-        user.metrics = deepClone(baseMetrics);
-
-        if (!user._baselineMetrics) {
-          user._baselineMetrics = deepClone(baseMetrics);
-        }
-
-        user._metricsCurrent = user._metricsCurrent
-          ? cloneMetrics(user._metricsCurrent)
-          : deepClone(baseMetrics);
-
-        const metrics = normalizeMetrics(user._metricsCurrent);
-        user._metricsCurrent = metrics;
-
-        const statusClass = String(user.status || '').toLowerCase() === 'ativo' ? 'status-ativo' : 'status-inativo';
-
-        const mainRow = `
-          <tr class="main-row" id="user-row-${user._safeId}" data-user-id="${user.id}" onclick="toggleUserDetails('${user._safeId}')">
-            <td><span class="expand-icon" id="expand-user-${user._safeId}">▶</span></td>
-            <td><strong>${formatText(user.nome)}</strong></td>
-            <td>${formatText(user.tipo)}</td>
-            <td><span class="status-badge ${statusClass}">${formatText(user.status)}</span></td>
-            <td id="user-${user._safeId}-kpi-totalRevenue">${formatCurrency(metrics.financial.totalRevenue)}</td>
-            <td id="user-${user._safeId}-kpi-conversion">${formatPercent(metrics.conversion.rate)}</td>
-            <td>${formatPercentFromDecimal(user.comissao)}</td>
-          </tr>
+      users.forEach((user) => {
+        const metrics = user.metrics || {};
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${user.name || '-'}</td>
+          <td>${user.role || '-'}</td>
+          <td>${metrics.salesCount || 0}</td>
+          <td>${metrics.quotesCount || 0}</td>
+          <td>${formatCurrency(metrics.salesValue)}</td>
+          <td>${formatCurrency(metrics.commissionTotal)}</td>
+          <td>${Number(metrics.conversionRate || 0).toFixed(1)}%</td>
         `;
-
-        const detailsRow = `
-          <tr class="details-row" id="details-user-${user._safeId}">
-            <td colspan="7">
-              <div class="details-content" id="details-content-${user._safeId}">
-                ${renderUserDetails(user)}
-              </div>
-            </td>
-          </tr>
-        `;
-
-        tbody.insertAdjacentHTML('beforeend', mainRow + detailsRow);
+        tbody.appendChild(row);
       });
     }
 
-    function renderUserDetails(user) {
-      const metrics = normalizeMetrics(user._metricsCurrent || user.metrics);
-      user._metricsCurrent = metrics;
-      const safeId = user._safeId;
-      const filterStart = user._lastFilter?.start || '';
-      const filterEnd = user._lastFilter?.end || '';
-      const comm = metrics.communication;
-      const eff = metrics.effectiveness;
-      const conv = metrics.conversion;
-      const fin = metrics.financial;
-      const der = metrics.derived;
-      const prrClass = getMetricLevel(eff.prr, 70, 40);
-      const convClass = getMetricLevel(conv.rate, 30, 15);
-      const ceClass = getMetricLevel(der.ce, 30, 15);
-
-      return `
-        <div class="detail-card" data-user="${formatText(user.id)}">
-          <div class="detail-header">📊 Análise Completa: ${formatText(user.nome)}</div>
-          <div class="filters" style="margin: 10px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
-            <label>📅 Período:</label>
-            <input type="date" id="startDateUser-${safeId}" value="${filterStart}" onchange="applyUserFilter('${user.id}')">
-            <input type="date" id="endDateUser-${safeId}" value="${filterEnd}" onchange="applyUserFilter('${user.id}')">
-          </div>
-
-          <div class="detail-grid">
-            <div class="detail-item">
-              <div class="detail-label">ID</div>
-              <div class="detail-value">${formatText(user.id)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Email</div>
-              <div class="detail-value">${formatText(user.email)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Telefone</div>
-              <div class="detail-value">${formatText(user.telefone)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Comissão Padrão</div>
-              <div class="detail-value">${formatPercentFromDecimal(user.comissao)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">💬 Comunicação</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Mensagens</div>
-              <div class="metric-value">${formatNumber(comm.messages)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Ligações</div>
-              <div class="metric-value">${formatNumber(comm.calls)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Total Contatos</div>
-              <div class="metric-value">${formatNumber(comm.total)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">✅ Efetividade</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Resp. Positivas</div>
-              <div class="metric-value good">${formatNumber(eff.respPos)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Resp. Negativas</div>
-              <div class="metric-value critical">${formatNumber(eff.respNeg)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">PRR (%)</div>
-              <div class="metric-value ${prrClass}">${formatPercent(eff.prr)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">🎯 Conversão</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Orçamentos</div>
-              <div class="metric-value">${formatNumber(conv.totalBudgets)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Convertidos</div>
-              <div class="metric-value good">${formatNumber(conv.converted)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Taxa (%)</div>
-              <div class="metric-value ${convClass}">${formatPercent(conv.rate)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">💰 Financeiro</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Receita Total</div>
-              <div class="metric-value good">${formatCurrency(fin.totalRevenue)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Comissão Total</div>
-              <div class="metric-value">${formatCurrency(fin.totalCommission)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Valor Médio</div>
-              <div class="metric-value">${formatCurrency(fin.avgSaleValue)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Lucro/Hora</div>
-              <div class="metric-value">${formatCurrency(fin.profitabilityPerHour)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">📈 Métricas Derivadas</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">OEI</div>
-              <div class="metric-value ${getMetricLevel(der.oei, 5, 2)}">${Number(der.oei || 0).toFixed(2)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">CE (%)</div>
-              <div class="metric-value ${ceClass}">${formatPercent(der.ce)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">HP ($/h)</div>
-              <div class="metric-value">${formatCurrency(der.hp)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">NEP</div>
-              <div class="metric-value good">${formatCurrency(der.nep)}</div>
-            </div>
-          </div>
-
-          <div class="action-buttons">
-            <button class="btn btn-edit" onclick="editUser('${user.id}')">✏️ Editar</button>
-            <button class="btn btn-deactivate" onclick="deactivateUser('${user.id}')">⛔ Desativar</button>
-            <button class="btn btn-remove" onclick="removeUser('${user.id}')">❌ Remover</button>
-          </div>
-        </div>
-      `;
-    }
-
-    function toggleUserDetails(safeId) {
-      const detailsRow = document.getElementById(`details-user-${safeId}`);
-      const expandIcon = document.getElementById(`expand-user-${safeId}`);
-      const mainRow = document.getElementById(`user-row-${safeId}`);
-      if (!detailsRow || !expandIcon || !mainRow) {
-        return;
-      }
-
-      if (detailsRow.classList.contains('show')) {
-        detailsRow.classList.remove('show');
-        expandIcon.classList.remove('expanded');
-        mainRow.classList.remove('expanded');
-      } else {
-        detailsRow.classList.add('show');
-        expandIcon.classList.add('expanded');
-        mainRow.classList.add('expanded');
-      }
-    }
-
-    function applyUserFilter(userId) {
-      if (!adminData || !Array.isArray(adminData.users)) {
-        return;
-      }
-
-      const user = adminData.users.find(u => u.id === userId);
-      if (!user) {
-        return;
-      }
-
-      const safeId = user._safeId;
-      const startInput = document.getElementById(`startDateUser-${safeId}`);
-      const endInput = document.getElementById(`endDateUser-${safeId}`);
-      const startValue = startInput ? startInput.value : '';
-      const endValue = endInput ? endInput.value : '';
-
-      user._lastFilter = { start: startValue, end: endValue };
-
-      if (!startValue && !endValue) {
-        user._metricsCurrent = deepClone(user._baselineMetrics);
-        updateUserDisplay(user);
-        return;
-      }
-
-      const { startDate, endDate } = buildDateRange(startValue, endValue);
-      const budgets = filterBudgetsByUser(user.id, startDate, endDate);
-      const sales = filterSalesByUser(user.id, startDate, endDate);
-
-      user._metricsCurrent = calculateUserMetricsClientSide(user, budgets, sales);
-      updateUserDisplay(user);
-    }
-
-    function updateUserDisplay(user) {
-      if (!user) return;
-      const metrics = normalizeMetrics(user._metricsCurrent);
-      user._metricsCurrent = metrics;
-
-      const totalRevenueCell = document.getElementById(`user-${user._safeId}-kpi-totalRevenue`);
-      if (totalRevenueCell) {
-        totalRevenueCell.textContent = formatCurrency(metrics.financial.totalRevenue);
-      }
-
-      const conversionCell = document.getElementById(`user-${user._safeId}-kpi-conversion`);
-      if (conversionCell) {
-        conversionCell.textContent = formatPercent(metrics.conversion.rate);
-      }
-
-      const detailsContent = document.getElementById(`details-content-${user._safeId}`);
-      if (detailsContent) {
-        detailsContent.innerHTML = renderUserDetails(user);
-        const startInput = document.getElementById(`startDateUser-${user._safeId}`);
-        const endInput = document.getElementById(`endDateUser-${user._safeId}`);
-        if (startInput && user._lastFilter?.start) {
-          startInput.value = user._lastFilter.start;
-        }
-        if (endInput && user._lastFilter?.end) {
-          endInput.value = user._lastFilter.end;
-        }
-      }
-    }
-
-    function filterBudgetsByUser(userId, startDate, endDate) {
-      const lista = Array.isArray(adminData?.budgets) ? adminData.budgets : [];
-      return lista.filter(budget => {
-        const responsavel = String(budget.vendedorId || budget.criadoPor || '').trim();
-        if (userId && responsavel !== userId) {
-          return false;
-        }
-        const data = getDateFromRecord(budget, 'dataCriacaoISO', 'dataCriacao');
-        if (startDate && (!data || data < startDate)) {
-          return false;
-        }
-        if (endDate && (!data || data > endDate)) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    function filterSalesByUser(userId, startDate, endDate) {
-      const lista = Array.isArray(adminData?.sales) ? adminData.sales : [];
-      return lista.filter(sale => {
-        const vendedor = String(sale.vendedorId || '').trim();
-        if (userId && vendedor !== userId) {
-          return false;
-        }
-        const data = getDateFromRecord(sale, 'dataISO', 'data');
-        if (startDate && (!data || data < startDate)) {
-          return false;
-        }
-        if (endDate && (!data || data > endDate)) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    function calculateUserMetricsClientSide(user, budgets, sales) {
-      const metricas = normalizeMetrics({});
-      const mensagens = budgets.reduce((sum, b) => sum + Number(b.mensagens || 0), 0);
-      const ligacoes = budgets.reduce((sum, b) => sum + Number(b.ligacoes || 0), 0);
-      metricas.communication.messages = mensagens;
-      metricas.communication.calls = ligacoes;
-      metricas.communication.total = mensagens + ligacoes;
-
-      metricas.effectiveness.respPos = budgets.reduce((sum, b) => sum + Number(b.respPos || 0), 0);
-      metricas.effectiveness.respNeg = budgets.reduce((sum, b) => sum + Number(b.respNeg || 0), 0);
-      const totalRespostas = metricas.effectiveness.respPos + metricas.effectiveness.respNeg;
-      metricas.effectiveness.prr = totalRespostas > 0 ? Number(((metricas.effectiveness.respPos / totalRespostas) * 100).toFixed(1)) : 0;
-
-      metricas.conversion.totalBudgets = budgets.length;
-      const statusFechado = ['fechado', 'fechado (venda)', 'fechado (vendas)'];
-      const convertidos = budgets.filter(b => statusFechado.includes(String(b.status || '').toLowerCase())).length;
-      metricas.conversion.converted = convertidos;
-      metricas.conversion.rate = metricas.conversion.totalBudgets > 0 ? Number(((convertidos / metricas.conversion.totalBudgets) * 100).toFixed(1)) : 0;
-
-      const totalVendas = sales.reduce((sum, s) => sum + Number(s.valor || 0), 0);
-      const totalComissao = sales.reduce((sum, s) => sum + Number(s.comissao || 0), 0);
-      metricas.financial.totalRevenue = Number(totalVendas.toFixed(2));
-      metricas.financial.totalCommission = Number(totalComissao.toFixed(2));
-      metricas.financial.avgSaleValue = sales.length > 0 ? Number((metricas.financial.totalRevenue / sales.length).toFixed(2)) : 0;
-      metricas.financial.profitabilityPerHour = Number(((metricas.financial.totalRevenue - metricas.financial.totalCommission) / 160 || 0).toFixed(2));
-
-      metricas.derived.oei = metricas.conversion.totalBudgets > 0 ? Number((metricas.communication.total / metricas.conversion.totalBudgets).toFixed(2)) : 0;
-      metricas.derived.ce = metricas.conversion.rate;
-      metricas.derived.hp = metricas.financial.profitabilityPerHour;
-      metricas.derived.prr = metricas.effectiveness.prr;
-      metricas.derived.nep = Number((metricas.financial.totalRevenue - metricas.financial.totalCommission).toFixed(2));
-
-      return metricas;
-    }
-
-    // =========================================
-    // 💼 RENDERIZAÇÃO: BUDGETS (COM ACCORDION)
-    // =========================================
-    function extractUniqueValues(collection, extractor) {
-      const set = new Set();
-      (collection || []).forEach(item => {
-        const value = extractor(item);
-        if (value) {
-          set.add(value);
-        }
-      });
-      return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    }
-
-    function populateFilterOptions(elementId, values) {
-      const element = document.getElementById(elementId);
-      if (!element) {
-        return;
-      }
-
-      const existingValue = element.value;
-      element.innerHTML = '';
-
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'Todos';
-      element.appendChild(defaultOption);
-
-      values.forEach(value => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = value;
-        element.appendChild(option);
-      });
-
-      if (values.includes(existingValue)) {
-        element.value = existingValue;
-      }
-    }
-
-    function renderBudgets(budgets) {
-      const loading = document.getElementById('budgetsLoading');
-      const content = document.getElementById('budgetsContent');
-      if (loading) loading.style.display = 'none';
-      if (content) content.style.display = 'block';
-
-      filteredBudgets = Array.isArray(budgets) ? [...budgets] : [];
-      setupBudgetFilters(adminData.budgets);
-      applyBudgetFilter();
-    }
-
-    function setupBudgetFilters(lista) {
-      const collection = Array.isArray(lista) ? lista : [];
-      populateFilterOptions('budgetFilterClient', extractUniqueValues(collection, item => formatText(item.cliente)));
-      populateFilterOptions('budgetFilterResponsible', extractUniqueValues(collection, item => formatText(item.responsavelNome || item.criadoPor)));
-      populateFilterOptions('budgetFilterType', extractUniqueValues(collection, item => formatText(item.tipo || item.origem)));
-      populateFilterOptions('budgetFilterStatus', extractUniqueValues(collection, item => formatText(item.status)));
-
-      if (!budgetFiltersInitialized) {
-        ['budgetFilterClient', 'budgetFilterResponsible', 'budgetFilterType', 'budgetFilterStatus', 'budgetFilterStart', 'budgetFilterEnd'].forEach(id => {
-          const element = document.getElementById(id);
-          if (element) {
-            element.addEventListener('change', () => applyBudgetFilter());
-          }
-        });
-        budgetFiltersInitialized = true;
-      }
-    }
-
-    function renderBudgetTable(lista) {
-      const tbody = document.getElementById('budgetsTableBody');
-      if (!tbody) return;
-
-      if (!Array.isArray(lista) || lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhum orçamento encontrado</div></td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = '';
-      lista.forEach((budget, index) => {
-        const safeId = budget._safeId || getSafeId(budget.id || index, 'budget');
-        budget._safeId = safeId;
-        const indicatorClass = `indicator-${budget.corStatus || 'gray'}`;
-        const tipo = formatText(budget.tipo || budget.origem);
-        const responsavel = formatText(budget.responsavelNome || budget.criadoPor);
-
-        const mainRow = `
-          <tr class="main-row" id="budget-row-${safeId}" onclick="toggleBudgetDetails('${safeId}')">
-            <td><span class="expand-icon" id="expand-budget-${safeId}">▶</span></td>
-            <td><span class="indicator ${indicatorClass}"></span>${formatText(budget.dataCriacao)}</td>
-            <td>${tipo}</td>
-            <td>${formatText(budget.cliente)}</td>
-            <td>${formatCurrency(budget.valor)}</td>
-            <td>${formatText(budget.status)}</td>
-            <td>${responsavel}</td>
-          </tr>
-        `;
-
-        const detailsRow = `
-          <tr class="details-row" id="details-budget-${safeId}">
-            <td colspan="7">
-              <div class="details-content">
-                ${renderBudgetDetails(budget)}
-              </div>
-            </td>
-          </tr>
-        `;
-
-        tbody.insertAdjacentHTML('beforeend', mainRow + detailsRow);
-      });
-    }
-
-    function updateBudgetSummary(lista) {
-      const summary = document.getElementById('budgetSummary');
-      if (!summary) return;
-      const total = Array.isArray(lista) ? lista.length : 0;
-      const somatorio = Array.isArray(lista) ? lista.reduce((sum, item) => sum + Number(item.valor || 0), 0) : 0;
-      summary.innerHTML = `
-        <span>Total de orçamentos: ${total}</span>
-        <span>Somatório: ${formatCurrency(somatorio)}</span>
-      `;
-    }
-
-    function applyBudgetFilter() {
-      const client = document.getElementById('budgetFilterClient')?.value || '';
-      const responsible = document.getElementById('budgetFilterResponsible')?.value || '';
-      const type = document.getElementById('budgetFilterType')?.value || '';
-      const status = document.getElementById('budgetFilterStatus')?.value || '';
-      const startValue = document.getElementById('budgetFilterStart')?.value || '';
-      const endValue = document.getElementById('budgetFilterEnd')?.value || '';
-      const { startDate, endDate } = buildDateRange(startValue, endValue);
-
-      filteredBudgets = (adminData && Array.isArray(adminData.budgets) ? adminData.budgets : []).filter(budget => {
-        const tipo = formatText(budget.tipo || budget.origem);
-        const responsavel = formatText(budget.responsavelNome || budget.criadoPor);
-        const cliente = formatText(budget.cliente);
-        const statusAtual = formatText(budget.status);
-        const dataRegistro = getDateFromRecord(budget, 'dataCriacaoISO', 'dataCriacao');
-
-        if (client && cliente !== client) return false;
-        if (responsible && responsavel !== responsible) return false;
-        if (type && tipo !== type) return false;
-        if (status && statusAtual !== status) return false;
-        if (startDate && (!dataRegistro || dataRegistro < startDate)) return false;
-        if (endDate && (!dataRegistro || dataRegistro > endDate)) return false;
-        return true;
-      });
-
-      renderBudgetTable(filteredBudgets);
-      updateBudgetSummary(filteredBudgets);
-    }
-
-    function resetBudgetFilters() {
-      ['budgetFilterClient', 'budgetFilterResponsible', 'budgetFilterType', 'budgetFilterStatus', 'budgetFilterStart', 'budgetFilterEnd'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-          element.value = '';
-        }
-      });
-      applyBudgetFilter();
-    }
-
-    function renderBudgetDetails(budget) {
-      const diasText = budget.diasDecorridos !== null && budget.diasDecorridos !== undefined ? `${budget.diasDecorridos} dias` : FALLBACK_TEXT;
-      const probConv = Number(budget.probabilidadeConversao || 0);
-
-      return `
-        <div class="detail-card">
-          <div class="detail-header">💼 Detalhes do Orçamento: ${formatText(budget.id)}</div>
-
-          <div class="detail-grid">
-            <div class="detail-item">
-              <div class="detail-label">Data Criação</div>
-              <div class="detail-value">${formatText(budget.dataCriacao)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Dias Decorridos</div>
-              <div class="detail-value">${diasText}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Tipo</div>
-              <div class="detail-value">${formatText(budget.tipo || budget.origem)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Responsável</div>
-              <div class="detail-value">${formatText(budget.responsavelNome || budget.criadoPor)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">👤 Informações do Cliente</div>
-          <div class="detail-grid">
-            <div class="detail-item">
-              <div class="detail-label">Nome</div>
-              <div class="detail-value">${formatText(budget.cliente)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Email</div>
-              <div class="detail-value">${formatText(budget.email)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Telefone</div>
-              <div class="detail-value">${formatText(budget.telefone)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">📋 Detalhes do Projeto</div>
-          <div class="detail-grid">
-            <div class="detail-item">
-              <div class="detail-label">Descrição</div>
-              <div class="detail-value">${formatText(budget.descricao)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Valor Estimado</div>
-              <div class="detail-value">${formatCurrency(budget.valor)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Status</div>
-              <div class="detail-value">${formatText(budget.status)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Último Contato</div>
-              <div class="detail-value">${formatText(budget.ultimoContato)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">📞 Comunicação</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Mensagens</div>
-              <div class="metric-value">${formatNumber(budget.mensagens)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Ligações</div>
-              <div class="metric-value">${formatNumber(budget.ligacoes)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Prob. Conversão</div>
-              <div class="metric-value">${formatPercent(probConv)}</div>
-            </div>
-          </div>
-
-          ${budget.motivoPerda ? `
-          <div class="detail-header" style="margin-top:24px;">❌ Motivo da Perda</div>
-          <div class="detail-value" style="padding:12px;background:#fef2f2;border-radius:6px;color:#991b1b;">${formatText(budget.motivoPerda)}</div>
-          ` : ''}
-
-          ${budget.obs ? `
-          <div class="detail-header" style="margin-top:24px;">📝 Observações</div>
-          <div class="detail-value" style="padding:12px;background:#f9fafb;border-radius:6px;">${formatText(budget.obs)}</div>
-          ` : ''}
-        </div>
-      `;
-    }
-
-    function toggleBudgetDetails(safeId) {
-      const detailsRow = document.getElementById(`details-budget-${safeId}`);
-      const expandIcon = document.getElementById(`expand-budget-${safeId}`);
-      const mainRow = document.getElementById(`budget-row-${safeId}`);
-      if (!detailsRow || !expandIcon || !mainRow) return;
-
-      if (detailsRow.classList.contains('show')) {
-        detailsRow.classList.remove('show');
-        expandIcon.classList.remove('expanded');
-        mainRow.classList.remove('expanded');
-      } else {
-        detailsRow.classList.add('show');
-        expandIcon.classList.add('expanded');
-        mainRow.classList.add('expanded');
-      }
-    }
-
-    // =========================================
-    // 💰 RENDERIZAÇÃO: SALES (COM ACCORDION)
-    // =========================================
     function renderSales(sales) {
-      const loading = document.getElementById('salesLoading');
-      const content = document.getElementById('salesContent');
-      if (loading) loading.style.display = 'none';
-      if (content) content.style.display = 'block';
-
-      filteredSales = Array.isArray(sales) ? [...sales] : [];
-      setupSalesFilters(adminData.sales);
-      applySalesFilter();
-    }
-
-    function setupSalesFilters(lista) {
-      const collection = Array.isArray(lista) ? lista : [];
-      populateFilterOptions('salesFilterClient', extractUniqueValues(collection, item => formatText(item.cliente)));
-      populateFilterOptions('salesFilterVendor', extractUniqueValues(collection, item => formatText(item.vendedorNome || item.vendedorId)));
-      populateFilterOptions('salesFilterType', extractUniqueValues(collection, item => formatText(item.tipo)));
-
-      if (!salesFiltersInitialized) {
-        ['salesFilterClient', 'salesFilterVendor', 'salesFilterType', 'salesFilterStart', 'salesFilterEnd'].forEach(id => {
-          const element = document.getElementById(id);
-          if (element) {
-            element.addEventListener('change', () => applySalesFilter());
-          }
-        });
-        salesFiltersInitialized = true;
-      }
-    }
-
-    function renderSalesTable(lista) {
-      const tbody = document.getElementById('salesTableBody');
-      if (!tbody) return;
-
-      if (!Array.isArray(lista) || lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div><div>Nenhuma venda registrada</div></td></tr>';
-        return;
-      }
-
+      const tbody = document.querySelector('#salesTable tbody');
       tbody.innerHTML = '';
-      lista.forEach((sale, index) => {
-        const safeId = sale._safeId || getSafeId(sale.invoice || sale.id || index, 'sale');
-        sale._safeId = safeId;
-
-        const mainRow = `
-          <tr class="main-row" id="sale-row-${safeId}" onclick="toggleSaleDetails('${safeId}')">
-            <td><span class="expand-icon" id="expand-sale-${safeId}">▶</span></td>
-            <td>${formatText(sale.data)}</td>
-            <td>${formatText(sale.tipo)}</td>
-            <td>${formatText(sale.cliente)}</td>
-            <td>${formatCurrency(sale.valor)}</td>
-            <td>${formatCurrency(sale.comissao)}</td>
-            <td>${formatText(sale.vendedorNome || sale.vendedorId)}</td>
-          </tr>
-        `;
-
-        const detailsRow = `
-          <tr class="details-row" id="details-sale-${safeId}">
-            <td colspan="7">
-              <div class="details-content">
-                ${renderSaleDetails(sale)}
-              </div>
-            </td>
-          </tr>
-        `;
-
-        tbody.insertAdjacentHTML('beforeend', mainRow + detailsRow);
-      });
-    }
-
-    function updateSalesSummary(lista) {
-      const summary = document.getElementById('salesSummary');
-      if (!summary) return;
-      const total = Array.isArray(lista) ? lista.length : 0;
-      const totalValor = Array.isArray(lista) ? lista.reduce((sum, item) => sum + Number(item.valor || 0), 0) : 0;
-      const totalComissao = Array.isArray(lista) ? lista.reduce((sum, item) => sum + Number(item.comissao || 0), 0) : 0;
-      summary.innerHTML = `
-        <span>Total de vendas: ${total}</span>
-        <span>Somatório: ${formatCurrency(totalValor)}</span>
-        <span>Comissões: ${formatCurrency(totalComissao)}</span>
-      `;
-    }
-
-    function applySalesFilter() {
-      const client = document.getElementById('salesFilterClient')?.value || '';
-      const vendor = document.getElementById('salesFilterVendor')?.value || '';
-      const type = document.getElementById('salesFilterType')?.value || '';
-      const startValue = document.getElementById('salesFilterStart')?.value || '';
-      const endValue = document.getElementById('salesFilterEnd')?.value || '';
-      const { startDate, endDate } = buildDateRange(startValue, endValue);
-
-      filteredSales = (adminData && Array.isArray(adminData.sales) ? adminData.sales : []).filter(sale => {
-        const cliente = formatText(sale.cliente);
-        const vendedor = formatText(sale.vendedorNome || sale.vendedorId);
-        const tipo = formatText(sale.tipo);
-        const dataRegistro = getDateFromRecord(sale, 'dataISO', 'data');
-
-        if (client && cliente !== client) return false;
-        if (vendor && vendedor !== vendor) return false;
-        if (type && tipo !== type) return false;
-        if (startDate && (!dataRegistro || dataRegistro < startDate)) return false;
-        if (endDate && (!dataRegistro || dataRegistro > endDate)) return false;
-        return true;
-      });
-
-      renderSalesTable(filteredSales);
-      updateSalesSummary(filteredSales);
-    }
-
-    function resetSalesFilters() {
-      ['salesFilterClient', 'salesFilterVendor', 'salesFilterType', 'salesFilterStart', 'salesFilterEnd'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-          element.value = '';
-        }
-      });
-      applySalesFilter();
-    }
-
-    function renderSaleDetails(sale) {
-      return `
-        <div class="detail-card">
-          <div class="detail-header">💰 Detalhes da Venda</div>
-
-          <div class="detail-grid">
-            <div class="detail-item">
-              <div class="detail-label">Data</div>
-              <div class="detail-value">${formatText(sale.data)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Tipo</div>
-              <div class="detail-value">${formatText(sale.tipo)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Cliente</div>
-              <div class="detail-value">${formatText(sale.cliente)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Empresa</div>
-              <div class="detail-value">${formatText(sale.empresa)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Invoice</div>
-              <div class="detail-value">${formatText(sale.invoice)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Produto</div>
-              <div class="detail-value">${formatText(sale.produto)}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Criado Por</div>
-              <div class="detail-value">${formatText(sale.criadoPor)}</div>
-            </div>
-          </div>
-
-          <div class="detail-header" style="margin-top:24px;">💵 Informações Financeiras</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Valor Total</div>
-              <div class="metric-value good">${formatCurrency(sale.valor)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Comissão</div>
-              <div class="metric-value">${formatCurrency(sale.comissao)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Comissão (%)</div>
-              <div class="metric-value">${formatPercent(sale.comissaoPercentual)}</div>
-            </div>
-            <div class="metric-box">
-              <div class="metric-label">Vendedor</div>
-              <div class="metric-value">${formatText(sale.vendedorNome || sale.vendedorId)}</div>
-            </div>
-          </div>
-
-          ${sale.tentativasContato ? `
-          <div class="detail-header" style="margin-top:24px;">📞 Esforço Comercial</div>
-          <div class="metrics-grid">
-            <div class="metric-box">
-              <div class="metric-label">Tentativas</div>
-              <div class="metric-value">${formatNumber(sale.tentativasContato)}</div>
-            </div>
-            ${sale.valorPorHora ? `
-            <div class="metric-box">
-              <div class="metric-label">Valor/Hora</div>
-              <div class="metric-value">${formatCurrency(sale.valorPorHora)}</div>
-            </div>
-            ` : ''}
-          </div>
-          ` : ''}
-        </div>
-      `;
-    }
-
-    function toggleSaleDetails(safeId) {
-      const detailsRow = document.getElementById(`details-sale-${safeId}`);
-      const expandIcon = document.getElementById(`expand-sale-${safeId}`);
-      const mainRow = document.getElementById(`sale-row-${safeId}`);
-      if (!detailsRow || !expandIcon || !mainRow) return;
-
-      if (detailsRow.classList.contains('show')) {
-        detailsRow.classList.remove('show');
-        expandIcon.classList.remove('expanded');
-        mainRow.classList.remove('expanded');
-      } else {
-        detailsRow.classList.add('show');
-        expandIcon.classList.add('expanded');
-        mainRow.classList.add('expanded');
-      }
-    }
-
-    // =========================================
-    // ⚙️ RENDERIZAÇÃO: SETTINGS
-    // =========================================
-    function renderSettings(settings) {
-      document.getElementById('settingsLoading').style.display = 'none';
-      document.getElementById('settingsContent').style.display = 'block';
-      const grid = document.getElementById('settingsGrid');
-      grid.innerHTML = '';
-
-      const safeSettings = (settings && typeof settings === 'object') ? settings : {}; // Garante objeto iterável
-
-      if (Object.keys(safeSettings).length === 0) {
-        grid.innerHTML = '<p style="color:#6b7280;">Nenhuma configuração disponível</p>';
+      if (!sales || sales.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted);">No sales registered.</td></tr>';
         return;
       }
-
-      Object.entries(safeSettings).forEach(([key, value]) => {
-        const item = `
-          <div class="detail-item">
-            <div class="detail-label">${key}</div>
-            <div class="detail-value">${value}</div>
-          </div>
+      sales.slice(0, 20).forEach((sale) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${sale.id || ''}</td>
+          <td>${sale.cliente || '-'}</td>
+          <td>${sale.vendedor || '-'}</td>
+          <td>${sale.produto || '-'}</td>
+          <td>${formatCurrency(sale.valor)}</td>
+          <td>${sale.status || '-'}</td>
         `;
-        grid.innerHTML += item;
+        tbody.appendChild(row);
       });
     }
 
-    // =========================================
-    // 🧭 TROCAR SEÇÕES
-    // =========================================
-    function showSection(id, el) {
-      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-
-      document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-      el.classList.add('active');
-    }
-
-    // =========================================
-    // ⚙️ AÇÕES DE USUÁRIO
-    // =========================================
-    function addNewUser() {
-      showAlert('🚧 Funcionalidade em desenvolvimento');
-    }
-
-    function editUser(userId) {
-      showAlert('✏️ Editar usuário: ' + userId);
-    }
-
-    function deactivateUser(userId) {
-      if (confirm('Deseja realmente desativar este usuário?')) {
-        showAlert('⛔ Usuário desativado: ' + userId);
+    function renderQuotes(quotes) {
+      const tbody = document.querySelector('#quotesTable tbody');
+      tbody.innerHTML = '';
+      if (!quotes || quotes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted);">No quotes registered.</td></tr>';
+        return;
       }
-    }
-
-    function removeUser(userId) {
-      if (confirm('⚠️ ATENÇÃO: Esta ação é irreversível. Deseja realmente remover este usuário?')) {
-        showAlert('❌ Usuário removido: ' + userId);
-      }
-    }
-
-    // =========================================
-    // ⚙️ UTILITÁRIOS
-    // =========================================
-    function showAlert(msg) {
-      const div = document.createElement('div');
-      div.className = 'alert';
-      div.textContent = msg;
-      document.body.appendChild(div);
-      setTimeout(() => div.remove(), 3000);
-    }
-
-    function showError(msg) {
-      const sections = ['reports', 'users', 'budgets', 'sales', 'settings'];
-      sections.forEach(section => {
-        const loading = document.getElementById(section + 'Loading');
-        const content = document.getElementById(section + 'Content');
-        if (content) {
-          content.style.display = 'none';
-        }
-        if (loading) {
-          loading.style.display = 'block';
-          loading.innerHTML = `<div class="error-message">❌ ${msg}</div>`;
-        }
+      quotes.slice(0, 20).forEach((quote) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${quote.id || ''}</td>
+          <td>${quote.cliente || '-'}</td>
+          <td>${quote.vendedor || '-'}</td>
+          <td>${quote.produto || '-'}</td>
+          <td>${formatCurrency(quote.valor)}</td>
+          <td>${quote.status || '-'}</td>
+        `;
+        tbody.appendChild(row);
       });
     }
 
-    function encerrarSessao() {
-      if (confirm('Deseja realmente sair do painel administrativo?')) {
-        google.script.run.encerrarSessao();
-        google.script.host.close();
-      }
+    function formatCurrency(value) {
+      const number = Number(value || 0);
+      return `$${number.toFixed(2)}`;
+    }
+
+    function showError(message) {
+      const error = document.getElementById('errorState');
+      error.textContent = message;
+      error.style.display = 'block';
+      document.getElementById('dashboardContent').style.display = 'none';
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast${isError ? ' error' : ''}`;
+      toast.style.display = 'block';
+      setTimeout(() => (toast.style.display = 'none'), 2400);
+    }
+
+    function logout() {
+      google.script.run
+        .withSuccessHandler(() => {
+          showToast('Session ended.');
+          google.script.host.close();
+        })
+        .withFailureHandler(() => showToast('Unable to sign out.', true))
+        .encerrarSessao();
     }
   </script>
 </body>

@@ -1,255 +1,66 @@
-# 🚀 F/Design Solutions — Sistema Final
+# F/Design Solutions — Sales & Quotes Workspace
 
-**Autor:** Vinicius Sabino  
-**Localização:** Newark, NJ  
-**Data:** Outubro 2025  
-**Versão:** 2.0.0 (Final Build)
+This repository contains the Apps Script implementation of the F/Design Solutions internal workspace. It provides authentication, sales registration, quotes tracking, and managerial dashboards integrated with Google Sheets.
 
----
-
-## 📋 SOBRE O SISTEMA
-
-Sistema completo de gerenciamento de vendas e orçamentos para **F/Design Solutions**, desenvolvido com **Google Apps Script** e integrado ao **Google Sheets**.
-
-### 🛠️ Tecnologias Utilizadas
-- **Backend:** Google Apps Script (Apps Script)
-- **Frontend:** HTML5, CSS3, Vanilla JavaScript
-- **Banco de Dados:** Google Sheets (abas estruturadas)
-- **Gráficos:** Google Charts API
-- **Autenticação:** Sessões baseadas em PropertiesService
-
----
-
-## 📁 ESTRUTURA DO PROJETO
-
+## Project structure
 ```
-FDesignSystem_FinalBuild/
-├── .clasp.json              # Configuração CLASP
-├── appsscript.json          # Manifesto do projeto
-├── Código.js                # Backend principal (Apps Script)
-├── loginSistema.html        # Tela de login
-├── homeFDesign.html         # Dashboard principal
-├── painelAdmin.html         # Painel administrativo
-├── formVendas.html          # Formulário de vendas
-├── formGerenciar.html       # Gerenciamento de registros
-├── dashboardVendas.html     # Dashboard detalhado de vendas
-└── README.md               # Este arquivo
+FDesignSolutions/
+├── appsscript.json          # Apps Script manifest (V8 runtime)
+├── core.gs                  # Shared constants, helpers, audit logger
+├── usuarios.gs              # Authentication, sessions, permissions
+├── vendas.gs                # Sales persistence and actions
+├── orcamentos.gs            # Quotes persistence and conversion logic
+├── dashboard.gs             # Analytical aggregations and config reader
+├── ui.gs                    # HtmlService modal loaders & navigation helpers
+├── loginSistema.html        # Sign-in modal
+├── homeFDesign.html         # Seller landing dashboard
+├── formVendas.html          # Register sale form
+├── dashboardVendas.html     # Sales management console
+├── orcamentosDashboard.html # Quotes pipeline
+├── formGerenciar.html       # Admin sale editor
+├── painelAdmin.html         # Admin control center
+├── CHANGELOG.md             # Release notes
+└── AUDIT_REPORT.md          # Detailed audit summary
 ```
 
----
+## Requirements
+- Google Workspace account with access to Google Sheets
+- Node.js ≥ 16 (for clasp tooling)
+- `@google/clasp` installed (`npm install -g @google/clasp`)
 
-## 🔧 INSTALAÇÃO E CONFIGURAÇÃO
-
-### Pré-requisitos
-- Conta Google Workspace
-- Google Sheets habilitado
-- CLASP instalado globalmente (`npm install -g @google/clasp`)
-
-### Passos de Instalação
-
-1. **Clonar/Configurar o Projeto:**
+## Setup & deployment
+1. **Authenticate clasp**
    ```bash
-   # Configurar CLASP
-   clasp login
-   clasp create "FDesignSystem" --type sheets
+   npm install
+   npx clasp login
    ```
-
-2. **Copiar Arquivos:**
-   - Substitua o `scriptId` no `.clasp.json` pelo ID do seu projeto Apps Script
-   - Faça upload de todos os arquivos HTML para o projeto
-
-3. **Configurar Google Sheets:**
-   - Crie uma nova planilha
-   - Adicione as seguintes abas (sheets):
-     - `USUARIOS` - Gestão de usuários
-     - `Client_List` - Registro de vendas
-     - `ORCAMENTOS` - Controle de orçamentos
-     - `CONFIG` - Configurações do sistema
-     - `AUDITORIA` - Log de ações
-
-4. **Executar Setup Inicial:**
-   ```javascript
-   // Execute no Apps Script Editor:
-   setupInicial();
+2. **Link to your Apps Script project**
+   - Update `.clasp.json` with your `scriptId` (create one with `npx clasp create --type sheets` if needed).
+3. **Push the code**
+   ```bash
+   npx clasp push
    ```
+4. **Prepare the spreadsheet**
+   Create/confirm the following tabs in the bound Google Sheet:
+   - `USUARIOS`
+   - `Client_List`
+   - `ORÇAMENTOS`
+   - `CONFIG`
+   - Optional: `AUDITORIA`
+   Columns are detected automatically; missing commission/status columns will be generated at runtime.
+5. **Launch the workspace**
+   - Open the bound sheet and use the custom menu `📘 F/Design Solutions → 🔐 Abrir Sistema`.
 
----
+## Runtime overview
+- **Sessions**: Stored in cache + user properties with 1-hour TTL. `usuarios.gs` exposes `loginManual`, `loginAutomatico`, `encerrarSessao`, and permission helpers.
+- **Sales** (`vendas.gs`): Handles registration, search, updates, payments, and contact logging. IDs are generated (`VEN-YYYYMMDDHHMMSS`), commissions computed from sale type.
+- **Quotes** (`orcamentos.gs`): Mirrors sales helpers, including conversion into sales and shared contact logging.
+- **Analytics** (`dashboard.gs`): Aggregates totals, conversion rate, and per-user metrics for dashboards.
+- **UI** (`ui.gs` + HTML): All dialogs use HtmlService, rely exclusively on `google.script.run`, and provide success/failure handlers for every critical action.
 
-## 👥 GESTÃO DE USUÁRIOS
+## Testing tips
+- Use the Apps Script editor execution log to monitor `writeAudit` entries and `registerGlobalError` output.
+- Confirm data persistence by registering a sale/quote and verifying the corresponding row in `Client_List`/`ORÇAMENTOS` contains ID, timestamp, seller, commission and log entries.
+- Run `npx clasp pull` before further edits to keep the local repository synchronised.
 
-### Tipos de Usuário
-- **Admin:** Acesso completo ao sistema
-- **Vendedor:** Acesso a vendas e orçamentos
-- **Funcionário:** Acesso limitado ao dashboard
-- **Afiliado:** Acesso restrito
-
-### Primeiro Login
-1. Execute `setupInicial()` no Apps Script
-2. Adicione usuários na aba `USUARIOS`
-3. Faça login com email + PIN
-
----
-
-## 📊 FUNCIONALIDADES
-
-### 🔐 Autenticação
-- Login manual (email + PIN)
-- Login automático (Google Account)
-- Sessões seguras com expiração
-- Controle de permissões por tipo
-
-### 💰 Gestão de Vendas
-- Registro de vendas (New/Old/Walk-in)
-- Cálculo automático de comissões
-- Busca e edição de registros
-- Relatórios em PDF
-
-### 📋 Controle de Orçamentos
-- Criação e acompanhamento
-- Status: Aberto/Proposta Enviada/Fechado/Perdido
-- Taxa de conversão automática
-
-### 📈 Dashboards
-- Dashboard principal (visão geral)
-- Dashboard de vendas (análises detalhadas)
-- Painel administrativo (gestão completa)
-- Gráficos interativos (Google Charts)
-
-### 👑 Painel Administrativo
-- Gestão completa de usuários
-- Relatórios consolidados
-- Configurações do sistema
-- Auditoria de ações
-
----
-
-## 🔗 ENDPOINTS PRINCIPAIS
-
-### Autenticação
-- `verificarLogin(credenciais)` - Login manual
-- `loginAutomatico()` - Login automático
-- `encerrarSessao()` - Logout
-
-### Vendas
-- `registrarVenda(dados)` - Nova venda
-- `buscarVenda(invoice)` - Buscar venda
-- `atualizarVenda(dados)` - Editar venda
-- `excluirVenda(linha)` - Excluir venda
-
-### Dashboards
-- `obterDadosDashboard()` - Dados principais
-- `obterDadosAdmin()` - Dados administrativos
-
-### Usuários (Admin)
-- `obterUsuarios()` - Listar usuários
-- `salvarUsuario(user)` - Criar/editar usuário
-- `excluirUsuario(id)` - Excluir usuário
-
----
-
-## 🎨 DESIGN E UX
-
-### Identidade Visual
-- **Cores:** Azul (#2b5797) e Amarelo (#fbbc04)
-- **Fonte:** Inter (Google Fonts)
-- **Logo:** F/Design Solutions oficial
-- **Layout:** Responsivo e moderno
-
-### Navegação
-- Menu lateral no painel admin
-- Botões de ação intuitivos
-- Feedback visual em todas as ações
-- Loading states e mensagens de erro
-
----
-
-## 🔒 SEGURANÇA
-
-### Medidas Implementadas
-- ✅ Sessões com expiração automática
-- ✅ Validação de permissões por endpoint
-- ✅ Sanitização de dados de entrada
-- ✅ Logs de auditoria completos
-- ✅ Proteção contra acesso não autorizado
-
-### Boas Práticas
-- Nunca exponha chaves ou senhas no código
-- Use HTTPS em produção
-- Mantenha backups regulares
-- Monitore logs de auditoria
-
----
-
-## 🚀 DEPLOYMENT
-
-### Usando CLASP
-```bash
-# Fazer login
-clasp login
-
-# Push para produção
-clasp push
-
-# Abrir no navegador
-clasp open
-```
-
-### Configuração de Produção
-1. Configure o `scriptId` correto
-2. Execute `setupInicial()` uma vez
-3. Teste todas as funcionalidades
-4. Configure permissões de compartilhamento
-
----
-
-## 🐛 DEBUGGING
-
-### Logs Importantes
-- Verifique `Logger.log()` no Apps Script Editor
-- Monitore a aba `AUDITORIA` para ações
-- Use o console do navegador (F12) para erros frontend
-
-### Problemas Comuns
-- **Sessão expirada:** Faça login novamente
-- **Permissões insuficientes:** Verifique tipo de usuário
-- **Dados não carregam:** Verifique conexão e abas do Sheets
-
----
-
-## 📞 SUPORTE
-
-**Desenvolvido por:** Vinicius Sabino  
-**Empresa:** F/Design Solutions  
-**Localização:** Newark, NJ  
-
-Para suporte técnico ou dúvidas:
-- Verifique os logs de erro
-- Teste em modo incógnito
-- Reinicie o Apps Script se necessário
-
----
-
-## 📝 CHANGELOG
-
-### Versão 2.0.0 (Final Build)
-- ✅ Sistema completamente refatorado
-- ✅ Login e sessão otimizados
-- ✅ Interface responsiva e moderna
-- ✅ Branding F/Design Solutions
-- ✅ Documentação completa
-- ✅ Setup automatizado
-
----
-
-## 🎯 PRÓXIMOS PASSOS
-
-- [ ] Configurar domínio personalizado
-- [ ] Implementar notificações por email
-- [ ] Adicionar backup automático
-- [ ] Criar API REST para integrações
-- [ ] Desenvolver app mobile companion
-
----
-
-**© 2025 F/Design Solutions — Newark, NJ**  
-*Sistema desenvolvido com ❤️ para impulsionar vendas e eficiência*
+For a detailed audit trail and improvement roadmap see [`AUDIT_REPORT.md`](AUDIT_REPORT.md).

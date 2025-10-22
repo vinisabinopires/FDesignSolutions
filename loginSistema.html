@@ -1,454 +1,282 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — F/Design Solutions</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · F/Design Solutions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    * {
-      margin: 0;
-      padding: 0;
+    :root {
+      color-scheme: light;
+      --primary: #2b5797;
+      --accent: #fbbc04;
+      --surface: rgba(255, 255, 255, 0.92);
+      --error: #dc2626;
+      --success: #16a34a;
+    }
+    *, *::before, *::after {
       box-sizing: border-box;
     }
-
     body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #fbbc04 0%, #2b5797 100%);
+      margin: 0;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top right, #fbbc04, #2b5797 55%, #0f172a);
     }
-
-    .login-container {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
+    .card {
+      width: min(420px, 100%);
+      background: var(--surface);
+      padding: 36px;
+      border-radius: 20px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
       position: relative;
       overflow: hidden;
     }
-
-    .login-container::before {
+    .card::before {
       content: '';
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #fbbc04, #2b5797);
+      inset: 0;
+      background: linear-gradient(135deg, rgba(43, 87, 151, 0.12), rgba(251, 188, 4, 0.12));
+      z-index: 0;
     }
-
-    .logo-section {
-      text-align: center;
-      margin-bottom: 30px;
+    .card-content {
+      position: relative;
+      z-index: 1;
     }
-
-    .logo {
-      width: 120px;
-      height: auto;
-      margin-bottom: 15px;
+    h1 {
+      margin: 0;
+      font-size: 1.75rem;
+      color: var(--primary);
     }
-
-    .company-name {
-      font-size: 18px;
-      font-weight: 600;
-      color: #2b5797;
-      margin-bottom: 5px;
+    p.subtitle {
+      margin: 6px 0 24px;
+      color: #4b5563;
+      font-size: 0.95rem;
     }
-
-    .company-tagline {
-      font-size: 14px;
-      color: #6b7280;
-    }
-
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
+      margin-bottom: 18px;
     }
-
-    .form-label {
-      font-size: 14px;
+    label {
       font-weight: 500;
-      color: #374151;
+      color: #1f2937;
+      font-size: 0.9rem;
     }
-
-    .form-input {
-      padding: 12px 16px;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: border-color 0.2s;
+    input {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(148, 163, 184, 0.5);
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-
-    .form-input:focus {
+    input:focus {
+      border-color: var(--primary);
       outline: none;
-      border-color: #2b5797;
-      box-shadow: 0 0 0 3px rgba(43, 87, 151, 0.1);
+      box-shadow: 0 0 0 4px rgba(43, 87, 151, 0.12);
     }
-
-    .login-btn {
-      background: linear-gradient(135deg, #fbbc04, #e0a800);
-      color: #000;
+    button.primary {
+      width: 100%;
       border: none;
+      border-radius: 12px;
       padding: 14px;
-      border-radius: 8px;
-      font-size: 16px;
       font-weight: 600;
+      font-size: 1rem;
+      background: linear-gradient(135deg, var(--accent), #ffd250);
+      color: #111827;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      display: flex;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
     }
-
-    .login-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(251, 188, 4, 0.3);
-    }
-
-    .login-btn:disabled {
-      opacity: 0.7;
+    button.primary:disabled {
       cursor: not-allowed;
+      opacity: 0.65;
     }
-
+    button.primary:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(251, 188, 4, 0.28);
+    }
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: var(--primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .message {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+      border-left: 4px solid transparent;
+    }
+    .message.error {
+      background: #fef2f2;
+      color: var(--error);
+      border-color: var(--error);
+    }
+    .message.success {
+      background: #f0fdf4;
+      color: var(--success);
+      border-color: var(--success);
+    }
     .spinner {
       width: 16px;
       height: 16px;
-      border: 2px solid rgba(0,0,0,0.3);
-      border-top: 2px solid #000;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      border: 2px solid rgba(17, 24, 39, 0.15);
+      border-top-color: rgba(17, 24, 39, 0.8);
+      animation: spin 0.8s linear infinite;
     }
-
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
-
-    .error-message {
-      background: #fef2f2;
-      color: #dc2626;
-      padding: 12px;
-      border-radius: 8px;
-      border-left: 4px solid #dc2626;
-      font-size: 14px;
-      display: none;
-    }
-
-    .success-message {
-      background: #f0fdf4;
-      color: #16a34a;
-      padding: 12px;
-      border-radius: 8px;
-      border-left: 4px solid #16a34a;
-      font-size: 14px;
-      display: none;
-    }
-
-    .auto-login-section {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
+    .footer-note {
+      margin-top: 32px;
       text-align: center;
-    }
-
-    .auto-login-btn {
-      background: #f3f4f6;
-      color: #374151;
-      border: 1px solid #d1d5db;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .auto-login-btn:hover {
-      background: #e5e7eb;
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 12px;
-      color: #9ca3af;
-    }
-
-    .footer a {
-      color: #2b5797;
-      text-decoration: none;
-    }
-
-    .footer a:hover {
-      text-decoration: underline;
-    }
-
-    @media (max-width: 480px) {
-      .login-container {
-        padding: 30px 20px;
-      }
-
-      .logo {
-        width: 100px;
-      }
+      font-size: 0.85rem;
+      color: rgba(17, 24, 39, 0.6);
     }
   </style>
 </head>
-
 <body>
-  <!-- 🔙 BOTÃO DE RETORNO -->
-  <button class="botao-voltar" onclick="voltarHome()">← Voltar ao Painel</button>
+  <div class="card">
+    <div class="card-content">
+      <h1>Welcome back</h1>
+      <p class="subtitle">Sign in to access the F/Design Solutions workspace.</p>
 
-  <style>
-    .botao-voltar {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: #fff;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: 0.2s;
-      z-index: 9999;
-    }
-    .botao-voltar:hover {
-      background: rgba(255,255,255,0.25);
-    }
-  </style>
+      <div id="errorMessage" class="message error"></div>
+      <div id="successMessage" class="message success"></div>
 
-  <script>
-    function voltarHome() {
-      window.location.href = "homeVendedor.html";
-    }
-  </script>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Corporate e-mail</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@fdesignsolutions.com" required />
+        </div>
+        <div class="form-group">
+          <label for="pin">Secure PIN</label>
+          <input id="pin" name="pin" type="password" inputmode="numeric" placeholder="Enter your PIN" required />
+        </div>
+        <button id="loginBtn" class="primary" type="submit">
+          <span id="spinner" class="spinner" style="display:none"></span>
+          <span id="btnText">Sign in</span>
+        </button>
+      </form>
 
-  <div class="login-container">
-    <div class="logo-section">
-      <img src="https://fdesignsolutions.com/wp-content/uploads/2023/08/logo-F-design-azul-1024x308.webp"
-           alt="F/Design Solutions"
-           class="logo">
-      <div class="company-name">F/Design Solutions</div>
-      <div class="company-tagline">Newark, NJ</div>
-    </div>
-
-    <form class="login-form" id="loginForm">
-      <div class="form-group">
-        <label class="form-label" for="email">E-mail</label>
-        <input type="email" id="email" class="form-input" placeholder="seu@email.com" required>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="pin">PIN de Acesso</label>
-        <input type="password" id="pin" class="form-input" placeholder="Digite seu PIN" required>
-      </div>
-
-      <button type="submit" class="login-btn" id="loginBtn">
-        <span id="btnText">Entrar no Sistema</span>
-        <div class="spinner" id="spinner" style="display: none;"></div>
+      <button id="autoLoginBtn" class="link-button" type="button">
+        <span>🔁 Sign in with Google account</span>
       </button>
-    </form>
 
-    <div id="errorMessage" class="error-message"></div>
-    <div id="successMessage" class="success-message"></div>
-
-    <div class="auto-login-section">
-      <button class="auto-login-btn" onclick="tentarLoginAutomatico()">
-        🔄 Tentar Login Automático
-      </button>
-    </div>
-
-    <div class="footer">
-      © 2025 F/Design Solutions — Sistema Seguro
+      <p class="footer-note">Secure environment — Newark, NJ · F/Design Solutions</p>
     </div>
   </div>
 
   <script>
-    // =========================================
-    // VARIÁVEIS GLOBAIS
-    // =========================================
-    let loginTentativas = 0;
-    const MAX_TENTATIVAS = 3;
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+    const autoLoginBtn = document.getElementById('autoLoginBtn');
 
-    // =========================================
-    // INICIALIZAÇÃO
-    // =========================================
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 Sistema de Login F/Design Solutions inicializado');
+    loginForm.addEventListener('submit', handleLogin);
+    autoLoginBtn.addEventListener('click', attemptAutoLogin);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(attemptAutoLogin, 500));
 
-      // Tentar login automático ao carregar
-      setTimeout(tentarLoginAutomatico, 500);
-
-      // Configurar formulário
-      document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    });
-
-    // =========================================
-    // LOGIN MANUAL
-    // =========================================
     function handleLogin(event) {
       event.preventDefault();
-
       const email = document.getElementById('email').value.trim();
       const pin = document.getElementById('pin').value.trim();
-
       if (!email || !pin) {
-        mostrarErro('Preencha todos os campos.');
+        showError('Please enter both e-mail and PIN.');
         return;
       }
-
-      if (loginTentativas >= MAX_TENTATIVAS) {
-        mostrarErro('Muitas tentativas. Aguarde alguns minutos.');
-        return;
-      }
-
       setLoadingState(true);
-      ocultarMensagens();
-
+      hideMessages();
       google.script.run
         .withSuccessHandler(onLoginSuccess)
         .withFailureHandler(onLoginError)
         .loginManual(email, pin);
     }
 
-    // =========================================
-    // LOGIN AUTOMÁTICO
-    // =========================================
-    function tentarLoginAutomatico() {
-      console.log('🔄 Tentando login automático...');
-
+    function attemptAutoLogin() {
+      hideMessages();
       google.script.run
-        .withSuccessHandler(onAutoLoginResult)
-        .withFailureHandler(onAutoLoginError)
+        .withSuccessHandler(onAutoLoginSuccess)
+        .withFailureHandler(() => {})
         .loginAutomatico();
     }
 
-    function onAutoLoginResult(result) {
-      console.log('📋 Resultado login automático:', result);
-
-      if (result.success && result.type === 'registered') {
-        mostrarSucesso('Login automático realizado! Redirecionando...');
-        setTimeout(() => {
-          google.script.run.iniciarSistemaFDesign();
-        }, 1500);
-      } else if (result.type === 'unregistered') {
-        mostrarErro('Conta não cadastrada. Use login manual.');
-      } else {
-        console.log('ℹ️ Login automático não aplicável');
-      }
-    }
-
-    function onAutoLoginError(error) {
-      console.log('⚠️ Erro no login automático (esperado):', error);
-    }
-
-    // =========================================
-    // HANDLERS DE RESPOSTA
-    // =========================================
     function onLoginSuccess(result) {
-  console.log('✅ Login bem-sucedido:', result);
-  setLoadingState(false);
-
-  if (result.success) {
-    mostrarSucesso('Login realizado com sucesso! Redirecionando...');
-    loginTentativas = 0;
-
-    // 🧠 Salvar sessão no navegador
-    sessionStorage.setItem("usuarioId", result.id);
-    sessionStorage.setItem("usuarioNome", result.nome);
-    sessionStorage.setItem("usuarioTipo", result.tipo);
-    sessionStorage.setItem("usuarioEmail", result.email);
-    sessionStorage.setItem("comissaoPadrao", result.comissaoPadrao);
-
-    // 🧭 Redirecionamento dinâmico
-    setTimeout(() => {
-      if (result.tipo === "Admin") {
-        window.location.href = "painelAdmin.html";
-      } else if (result.tipo === "Vendedor" || result.tipo === "Gerente" || result.tipo === "Designer") {
-        window.location.href = "homeVendedor.html";
-      } else {
-        window.location.href = "homeFDesign.html"; // fallback
+      setLoadingState(false);
+      if (!result || !result.success) {
+        showError(result?.message || 'Unable to authenticate.');
+        return;
       }
-    }, 1200);
-  } else {
-    loginTentativas++;
-    mostrarErro(result.message || 'Erro no login.');
-  }
-}
-
+      showSuccess('Authentication successful. Loading workspace...');
+      openWorkspace();
+    }
 
     function onLoginError(error) {
-      console.error('❌ Erro no login:', error);
       setLoadingState(false);
-      loginTentativas++;
-      mostrarErro('Erro de conexão. Tente novamente.');
+      showError('Connection error. Please try again.');
+      console.error('Login error', error);
     }
 
-    // =========================================
-    // UTILITÁRIOS DE UI
-    // =========================================
+    function onAutoLoginSuccess(result) {
+      if (result && result.success) {
+        showSuccess('Signed in with your Google Workspace account.');
+        openWorkspace();
+      } else if (result && result.type === 'unregistered') {
+        showError('Your Google account is not registered. Use manual sign in.');
+      }
+    }
+
+    function openWorkspace() {
+      google.script.run
+        .withSuccessHandler(() => google.script.host.close())
+        .withFailureHandler((err) => showError('Unable to open the workspace.'))
+        .iniciarSistemaFDesign();
+    }
+
     function setLoadingState(loading) {
-      const btn = document.getElementById('loginBtn');
-      const spinner = document.getElementById('spinner');
-      const btnText = document.getElementById('btnText');
-
-      btn.disabled = loading;
+      loginBtn.disabled = loading;
       spinner.style.display = loading ? 'inline-block' : 'none';
-      btnText.textContent = loading ? 'Entrando...' : 'Entrar no Sistema';
+      btnText.textContent = loading ? 'Signing in...' : 'Sign in';
     }
 
-    function mostrarErro(mensagem) {
-      const errorDiv = document.getElementById('errorMessage');
-      const successDiv = document.getElementById('successMessage');
-
-      errorDiv.textContent = mensagem;
-      errorDiv.style.display = 'block';
-      successDiv.style.display = 'none';
-    }
-
-    function mostrarSucesso(mensagem) {
-      const errorDiv = document.getElementById('errorMessage');
-      const successDiv = document.getElementById('successMessage');
-
-      successDiv.textContent = mensagem;
-      successDiv.style.display = 'block';
-      errorDiv.style.display = 'none';
-    }
-
-    function ocultarMensagens() {
-      document.getElementById('errorMessage').style.display = 'none';
+    function showError(message) {
+      const el = document.getElementById('errorMessage');
+      el.textContent = message;
+      el.style.display = 'block';
       document.getElementById('successMessage').style.display = 'none';
     }
 
-    // =========================================
-    // SEGURANÇA ADICIONAL
-    // =========================================
-    // Prevenir inspeção do código fonte
-    document.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-    });
+    function showSuccess(message) {
+      const el = document.getElementById('successMessage');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('errorMessage').style.display = 'none';
+    }
 
-    // Prevenir atalhos comuns
-    document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) {
-        e.preventDefault();
-      }
-    });
+    function hideMessages() {
+      document.getElementById('errorMessage').style.display = 'none';
+      document.getElementById('successMessage').style.display = 'none';
+    }
   </script>
 </body>
 </html>
