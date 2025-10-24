@@ -1,662 +1,319 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard de Vendas — F/Design Solutions</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <title>Sales Dashboard — F/Design Solutions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; font-family: 'Nunito Sans', sans-serif; }
     body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #fbbc04 0%, #2b5797 100%);
-      min-height: 100vh;
-      color: #fff;
-    }
-
-    .header {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 20px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-    }
-
-    .logo-section {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .logo {
-      width: 140px;
-      height: auto;
-    }
-
-    .company-info h1 {
-      font-size: 20px;
-      font-weight: 600;
-      color: #2b5797;
-      margin-bottom: 2px;
-    }
-
-    .company-info p {
-      font-size: 14px;
-      color: #6b7280;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .export-btn {
-      background: linear-gradient(135deg, #fbbc04, #e0a800);
-      color: #000;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: transform 0.2s;
-    }
-
-    .export-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(251, 188, 4, 0.3);
-    }
-
-    .back-btn {
-      background: rgba(255, 255, 255, 0.9);
-      color: #374151;
-      border: 1px solid #d1d5db;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .back-btn:hover {
-      background: white;
-    }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
+      margin: 0; min-height: 100vh; color: #fff;
+      background: linear-gradient(135deg, #1b2b5a, #283f87, #2b5797);
+      background-size: 300% 300%;
+      animation: gradientShift 18s ease infinite;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
       padding: 30px;
     }
-
-    .welcome-section {
-      text-align: center;
-      margin-bottom: 30px;
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
-    .welcome-section h2 {
-      font-size: 28px;
-      margin-bottom: 10px;
+    .dashboard {
+      width: 95%; max-width: 1000px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 30px 40px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+      backdrop-filter: blur(14px);
+      animation: fadeIn 0.8s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+
+    h1 {
+      font-weight: 800; font-size: 2rem; margin: 0 0 6px;
+    }
+    .subtext {
+      color: #e0e6f7; font-size: 1.1rem; margin-bottom: 25px;
     }
 
-    .welcome-section p {
-      opacity: 0.9;
-      font-size: 16px;
+    .search-section {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px; margin-bottom: 25px;
+    }
+    input {
+      padding: 12px 16px; border-radius: 10px; border: none; font-size: 1rem;
+      background: rgba(255,255,255,0.15); color: #fff;
+    }
+    input::placeholder { color: rgba(255,255,255,0.6); }
+    button {
+      padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer;
+      font-weight: 700; font-size: 1rem; transition: all 0.25s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #fbbc04, #ffcc33);
+      color: #222;
+    }
+    .btn-primary:hover { transform: translateY(-2px); }
+
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 10px;
+      background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden;
+    }
+    th, td {
+      padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    th { font-weight: 700; color: #ffdf85; background: rgba(255,255,255,0.08); }
+    tr:hover { background: rgba(255,255,255,0.12); cursor: pointer; }
+
+    .empty {
+      text-align: center; padding: 25px; font-style: italic; color: rgba(255,255,255,0.6);
     }
 
-    .filters-section {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 25px;
-      margin-bottom: 30px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    /* MODAL */
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: #fff; color: #222; border-radius: 14px; width: 95%; max-width: 550px;
+      padding: 25px 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      animation: popIn 0.3s ease;
+    }
+    @keyframes popIn { from{opacity:0;transform:scale(0.95);} to{opacity:1;transform:scale(1);} }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #ddd; margin-bottom: 15px; padding-bottom: 10px;
+    }
+    .modal-header h2 { font-size: 1.4rem; margin: 0; }
+    .close-btn { background:none;border:none;font-size:1.6rem;cursor:pointer; }
+
+    .action-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+    .action-buttons button {
+      flex: 1 1 45%; padding: 10px; font-weight: 600;
+      border-radius: 8px; border: none;
+    }
+    .btn-call { background: #0ea5e9; color: #fff; }
+    .btn-msg { background: #10b981; color: #fff; }
+    .btn-pay { background: #fbbc04; color: #000; }
+    .btn-close { background: #dc2626; color: #fff; }
+
+    .field-group {
+      display: flex; gap: 10px; align-items: center; margin-top: 10px;
+    }
+    .field-group input, .field-group select {
+      flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px;
     }
 
-    .filters-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      align-items: end;
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; padding: 12px 18px;
+      border-radius: 8px; font-weight: 600; display: none;
     }
-
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .filter-label {
-      font-size: 14px;
-      font-weight: 600;
-      color: #374151;
-    }
-
-    .filter-input,
-    .filter-select {
-      padding: 12px 16px;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: border-color 0.2s;
-    }
-
-    .filter-input:focus,
-    .filter-select:focus {
-      outline: none;
-      border-color: #2b5797;
-      box-shadow: 0 0 0 3px rgba(43, 87, 151, 0.1);
-    }
-
-    .filter-btn {
-      background: linear-gradient(135deg, #2b5797, #1e40af);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: transform 0.2s;
-    }
-
-    .filter-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(43, 87, 151, 0.3);
-    }
-
-    .loading-spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top: 2px solid #fff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(360deg); }
-    }
-
-    .metrics-section {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    .metric-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 25px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: transform 0.3s ease;
-    }
-
-    .metric-card:hover {
-      transform: translateY(-5px);
-    }
-
-    .metric-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      margin-bottom: 15px;
-    }
-
-    .metric-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 8px;
-    }
-
-    .metric-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #2b5797;
-      margin-bottom: 5px;
-    }
-
-    .metric-subtitle {
-      font-size: 14px;
-      color: #6b7280;
-    }
-
-    .charts-section {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 25px;
-      margin-bottom: 30px;
-    }
-
-    .chart-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 25px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .chart-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #1f2937;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .full-chart {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 25px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      margin-bottom: 30px;
-    }
-
-    .message {
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: none;
-      text-align: center;
-    }
-
-    .message.success {
-      background: rgba(16, 185, 129, 0.9);
-      color: white;
-    }
-
-    .message.error {
-      background: rgba(239, 68, 68, 0.9);
-      color: white;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 16px;
-    }
-
-    @media (max-width: 1024px) {
-      .charts-section {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .filters-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .header {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-      }
-
-      .container {
-        padding: 20px;
-      }
-
-      .welcome-section h2 {
-        font-size: 24px;
-      }
-
-      .metrics-section {
-        grid-template-columns: 1fr;
-      }
-    }
+    .toast.success { background: #16a34a; color: #fff; }
+    .toast.error { background: #dc2626; color: #fff; }
   </style>
 </head>
 
 <body>
-  <header class="header">
-    <div class="logo-section">
-      <img src="https://fdesignsolutions.com/wp-content/uploads/2023/08/logo-F-design-branca-768x231.webp"
-           alt="F/Design Solutions"
-           class="logo">
-      <div class="company-info">
-        <h1>F/Design Solutions</h1>
-        <p>Dashboard de Vendas</p>
+
+  <!-- 🔙 BOTÃO DE RETORNO -->
+<button class="botao-voltar" onclick="voltarHome()">← Voltar ao Painel</button>
+
+<style>
+  .botao-voltar {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid #fbbc04;
+    color: #fbbc04;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+    z-index: 9999;
+  }
+  .botao-voltar:hover {
+    background: #fbbc04;
+    color: #202124;
+  }
+</style>
+
+<script>
+  function voltarHome() {
+    console.log("🔁 Voltando ao Painel de Vendas...");
+    google.script.run
+      .withSuccessHandler(() => console.log("✅ Painel principal aberto."))
+      .withFailureHandler(err => alert("❌ Erro ao voltar: " + err))
+      .abrirHomeVendedor();
+  }
+</script>
+
+  <div class="dashboard">
+    <h1>Sales Dashboard</h1>
+    <p class="subtext">Search, manage, and update your client sales.</p>
+
+    <div class="search-section">
+      <input id="searchClient" placeholder="Client name">
+      <input id="searchCompany" placeholder="Company">
+      <input id="searchInvoice" placeholder="Invoice #">
+      <input id="searchProduct" placeholder="Product">
+      <button class="btn-primary" onclick="searchSales()">Search</button>
+    </div>
+
+    <table id="salesTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Client</th><th>Company</th><th>Product</th><th>Value</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="salesBody">
+        <tr><td colspan="6" class="empty">No results found</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODAL -->
+  <div id="saleModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="saleTitle">Sale Details</h2>
+        <button class="close-btn" onclick="closeModal()">×</button>
       </div>
-    </div>
-    <div class="header-actions">
-      <button class="export-btn" onclick="exportarRelatorio()" id="exportBtn">
-        📤 Export PDF
-      </button>
-      <button class="back-btn" onclick="voltarMenu()">
-        ← Voltar
-      </button>
-    </div>
-  </header>
+      <div id="saleInfo"></div>
 
-  <div class="container">
-    <div class="welcome-section">
-      <h2>📊 Dashboard de Vendas</h2>
-      <p>Análise detalhada do desempenho de vendas</p>
-    </div>
+      <div class="action-buttons">
+        <button class="btn-call" onclick="addContact('Call')">+ Call</button>
+        <button class="btn-msg" onclick="addContact('Message')">+ Message</button>
+        <button class="btn-pay" onclick="openPayment()">+ Payment</button>
+        <button class="btn-close" onclick="closeSale()">Close Sale</button>
+      </div>
 
-    <div id="successMessage" class="message success"></div>
-    <div id="errorMessage" class="message error"></div>
-
-    <!-- Filtros -->
-    <div class="filters-section">
-      <div class="filters-grid">
-        <div class="filter-group">
-          <label class="filter-label">Período</label>
-          <select class="filter-select" id="filtroPeriodo">
-            <option value="mes">Mês Atual</option>
-            <option value="ano">Ano Atual</option>
-            <option value="todos">Todos os Dados</option>
+      <div id="paymentSection" style="display:none; margin-top:10px;">
+        <div class="field-group">
+          <input id="paymentValue" type="number" placeholder="Amount ($)" step="0.01" min="0">
+          <select id="paymentMethod">
+            <option value="">Method</option>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="Check">Check</option>
+            <option value="Zelle">Zelle</option>
           </select>
         </div>
-
-        <div class="filter-group">
-          <label class="filter-label">Data Inicial</label>
-          <input type="date" class="filter-input" id="dataInicio">
-        </div>
-
-        <div class="filter-group">
-          <label class="filter-label">Data Final</label>
-          <input type="date" class="filter-input" id="dataFim">
-        </div>
-
-        <button class="filter-btn" onclick="atualizarDashboard()" id="atualizarBtn">
-          <span id="btnIcon">⚡</span>
-          <span id="btnText">Atualizar Dados</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div id="loadingState" class="loading" style="display: none;">
-      Carregando dados do dashboard...
-    </div>
-
-    <!-- Dashboard Content -->
-    <div id="dashboardContent" style="display: none;">
-      <!-- Métricas -->
-      <div class="metrics-section">
-        <div class="metric-card">
-          <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💰</div>
-          <div class="metric-title">Total de Vendas</div>
-          <div class="metric-value" id="totalVendas">$0.00</div>
-          <div class="metric-subtitle">Valor total das vendas</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📈</div>
-          <div class="metric-title">Total de Comissões</div>
-          <div class="metric-value" id="totalComissoes">$0.00</div>
-          <div class="metric-subtitle">Comissões pagas</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🎯</div>
-          <div class="metric-title">Vendas New</div>
-          <div class="metric-value" id="vendasNew">0</div>
-          <div class="metric-subtitle">Clientes novos (30%)</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">🔄</div>
-          <div class="metric-title">Vendas Old</div>
-          <div class="metric-value" id="vendasOld">0</div>
-          <div class="metric-subtitle">Clientes antigos (20%)</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">🚶</div>
-          <div class="metric-title">Vendas Walk-in</div>
-          <div class="metric-value" id="vendasWalk">0</div>
-          <div class="metric-subtitle">Atendimento direto (10%)</div>
-        </div>
-      </div>
-
-      <!-- Gráficos -->
-      <div class="charts-section">
-        <div class="chart-card">
-          <div class="chart-title">📈 Vendas por Mês</div>
-          <div id="chartVendasMensal" style="height: 300px;"></div>
-        </div>
-
-        <div class="chart-card">
-          <div class="chart-title">🧭 Distribuição por Tipo</div>
-          <div id="chartDistribuicao" style="height: 300px;"></div>
-        </div>
-      </div>
-
-      <!-- Top Clientes -->
-      <div class="full-chart">
-        <div class="chart-title">🏆 Top 5 Clientes</div>
-        <div id="chartTopClientes" style="height: 350px;"></div>
+        <button class="btn-primary" style="margin-top:10px;" onclick="applyPayment()">Apply Payment</button>
       </div>
     </div>
   </div>
 
+  <div id="toast" class="toast"></div>
+
   <script>
-    // =========================================
-    // VARIÁVEIS GLOBAIS
-    // =========================================
-    let dadosAtuais = null;
+    let currentSale = null;
 
-    // =========================================
-    // INICIALIZAÇÃO
-    // =========================================
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 Dashboard de vendas inicializado');
-      google.charts.load('current', {packages:['corechart', 'bar']});
-      google.charts.setOnLoadCallback(atualizarDashboard);
-    });
-
-    // =========================================
-    // ATUALIZAR DASHBOARD
-    // =========================================
-    function atualizarDashboard() {
-      const periodo = document.getElementById('filtroPeriodo').value;
-      const dataInicio = document.getElementById('dataInicio').value;
-      const dataFim = document.getElementById('dataFim').value;
-
-      setLoadingState(true);
-      ocultarMensagens();
+    function searchSales() {
+      const filtros = {
+        nome: document.getElementById('searchClient').value.trim(),
+        empresa: document.getElementById('searchCompany').value.trim(),
+        invoice: document.getElementById('searchInvoice').value.trim(),
+        produto: document.getElementById('searchProduct').value.trim(),
+      };
 
       google.script.run
-        .withSuccessHandler(onDashboardSuccess)
-        .withFailureHandler(onDashboardError)
-        .obterDadosDashboard({ periodo, dataInicio, dataFim });
+        .withSuccessHandler(renderSales)
+        .withFailureHandler(err => showToast('Error searching sales', 'error'))
+        .buscarVendas(filtros);
     }
 
-    function onDashboardSuccess(dados) {
-      console.log('✅ Dados recebidos:', dados);
-      dadosAtuais = dados;
-      renderizarDashboard(dados);
-      setLoadingState(false);
-    }
+    function renderSales(sales) {
+      const tbody = document.getElementById('salesBody');
+      tbody.innerHTML = '';
 
-    function onDashboardError(error) {
-      console.error('❌ Erro ao carregar dashboard:', error);
-      setLoadingState(false);
-      mostrarErro('Erro ao carregar dados: ' + error.message);
-    }
-
-    // =========================================
-    // RENDERIZAR DASHBOARD
-    // =========================================
-    function renderizarDashboard(dados) {
-      // Ocultar loading e mostrar conteúdo
-      document.getElementById('loadingState').style.display = 'none';
-      document.getElementById('dashboardContent').style.display = 'block';
-
-      // Atualizar métricas
-      document.getElementById('totalVendas').textContent = `$${dados.totalVendas.toFixed(2)}`;
-      document.getElementById('totalComissoes').textContent = `$${dados.totalComissao.toFixed(2)}`;
-      document.getElementById('vendasNew').textContent = dados.vendasNew || 0;
-      document.getElementById('vendasOld').textContent = dados.vendasOld || 0;
-      document.getElementById('vendasWalk').textContent = dados.vendasWalk || 0;
-
-      // Renderizar gráficos
-      renderizarGraficoVendasMensal(dados.graficoVendas);
-      renderizarGraficoDistribuicao(dados);
-      renderizarGraficoTopClientes(dados.topClientes);
-    }
-
-    function renderizarGraficoVendasMensal(dadosGrafico) {
-      if (!dadosGrafico || dadosGrafico.length === 0) {
-        document.getElementById('chartVendasMensal').innerHTML = '<p style="text-align: center; color: #6b7280;">Nenhum dado disponível</p>';
+      if (!sales || sales.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">No results found</td></tr>';
         return;
       }
 
-      const data = google.visualization.arrayToDataTable(dadosGrafico);
-      const chart = new google.visualization.ColumnChart(document.getElementById('chartVendasMensal'));
-      chart.draw(data, {
-        legend: { position: 'none' },
-        colors: ['#2b5797'],
-        vAxis: { title: 'Valor ($)' },
-        hAxis: { title: 'Mês' }
+      sales.forEach(s => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${s.id}</td>
+          <td>${s.cliente}</td>
+          <td>${s.empresa}</td>
+          <td>${s.produto}</td>
+          <td>$${parseFloat(s.valor).toFixed(2)}</td>
+          <td>${s.status}</td>
+        `;
+        row.onclick = () => openSaleDetails(s);
+        tbody.appendChild(row);
       });
     }
 
-    function renderizarGraficoDistribuicao(dados) {
-      const data = google.visualization.arrayToDataTable([
-        ['Tipo', 'Quantidade'],
-        ['New', dados.vendasNew || 0],
-        ['Old', dados.vendasOld || 0],
-        ['Walk-in', dados.vendasWalk || 0]
-      ]);
-
-      const chart = new google.visualization.PieChart(document.getElementById('chartDistribuicao'));
-      chart.draw(data, {
-        legend: { position: 'bottom' },
-        colors: ['#10b981', '#f59e0b', '#ec4899'],
-        pieHole: 0.4
-      });
+    function openSaleDetails(sale) {
+      currentSale = sale;
+      document.getElementById('saleTitle').textContent = `Sale #${sale.id}`;
+      document.getElementById('saleInfo').innerHTML = `
+        <p><strong>Client:</strong> ${sale.cliente}</p>
+        <p><strong>Company:</strong> ${sale.empresa}</p>
+        <p><strong>Product:</strong> ${sale.produto}</p>
+        <p><strong>Value:</strong> $${parseFloat(sale.valor).toFixed(2)}</p>
+        <p><strong>Status:</strong> ${sale.status}</p>
+        <p><strong>Attempts:</strong> ${sale.tentativas || 0}</p>
+      `;
+      document.getElementById('saleModal').style.display = 'flex';
     }
 
-    function renderizarGraficoTopClientes(dadosTop) {
-      if (!dadosTop || dadosTop.length === 0) {
-        document.getElementById('chartTopClientes').innerHTML = '<p style="text-align: center; color: #6b7280;">Nenhum dado disponível</p>';
-        return;
-      }
-
-      const data = google.visualization.arrayToDataTable(dadosTop);
-      const chart = new google.visualization.BarChart(document.getElementById('chartTopClientes'));
-      chart.draw(data, {
-        legend: { position: 'none' },
-        colors: ['#fbbc04'],
-        hAxis: { title: 'Valor ($)' },
-        vAxis: { title: 'Cliente' }
-      });
+    function closeModal() {
+      document.getElementById('saleModal').style.display = 'none';
+      document.getElementById('paymentSection').style.display = 'none';
     }
 
-    // =========================================
-    // EXPORTAR RELATÓRIO
-    // =========================================
-    function exportarRelatorio() {
-      if (!dadosAtuais) {
-        mostrarErro('Carregue os dados antes de exportar.');
-        return;
-      }
+    function addContact(type) {
+      if (!currentSale) return;
+      google.script.run
+        .withSuccessHandler(res => {
+          showToast(`${type} logged (${res.tentativas} total)`, 'success');
+          searchSales();
+        })
+        .withFailureHandler(() => showToast('Error adding contact', 'error'))
+        .registrarTentativaContato(currentSale.id, type);
+    }
 
-      const btn = document.getElementById('exportBtn');
-      const originalText = btn.innerHTML;
+    function openPayment() {
+      document.getElementById('paymentSection').style.display = 'block';
+    }
 
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Gerando PDF...';
+    function applyPayment() {
+      const value = document.getElementById('paymentValue').value;
+      const method = document.getElementById('paymentMethod').value;
+      if (!value || !method) return showToast('Fill all payment fields', 'error');
 
       google.script.run
-        .withSuccessHandler(function(url) {
-          btn.disabled = false;
-          btn.innerHTML = originalText;
-          mostrarSucesso('Relatório gerado com sucesso!');
-          window.open(url, '_blank');
+        .withSuccessHandler(res => {
+          showToast(`Payment added. Total paid: $${res.total.toFixed(2)}`, 'success');
+          document.getElementById('paymentSection').style.display = 'none';
+          searchSales();
         })
-        .withFailureHandler(function(error) {
-          btn.disabled = false;
-          btn.innerHTML = originalText;
-          mostrarErro('Erro ao gerar relatório: ' + error.message);
-        })
-        .gerarRelatorioPDF(dadosAtuais);
+        .withFailureHandler(() => showToast('Error registering payment', 'error'))
+        .registrarPagamento(currentSale.id, parseFloat(value), method);
     }
 
-    // =========================================
-    // UTILITÁRIOS DE UI
-    // =========================================
-    function setLoadingState(loading) {
-      const loadingDiv = document.getElementById('loadingState');
-      const btn = document.getElementById('atualizarBtn');
-      const btnIcon = document.getElementById('btnIcon');
-      const btnText = document.getElementById('btnText');
-
-      loadingDiv.style.display = loading ? 'block' : 'none';
-      document.getElementById('dashboardContent').style.display = loading ? 'none' : 'block';
-
-      if (loading) {
-        btn.disabled = true;
-        btnIcon.innerHTML = '<span style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid #fff; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block;"></span>';
-        btnText.textContent = 'Carregando...';
-      } else {
-        btn.disabled = false;
-        btnIcon.textContent = '⚡';
-        btnText.textContent = 'Atualizar Dados';
-      }
+    function closeSale() {
+      showToast('Sale marked as completed ✔️', 'success');
+      closeModal();
     }
 
-    function mostrarSucesso(mensagem) {
-      const successDiv = document.getElementById('successMessage');
-      const errorDiv = document.getElementById('errorMessage');
-
-      successDiv.textContent = mensagem;
-      successDiv.style.display = 'block';
-      errorDiv.style.display = 'none';
-
-      setTimeout(() => {
-        successDiv.style.display = 'none';
-      }, 5000);
-    }
-
-    function mostrarErro(mensagem) {
-      const successDiv = document.getElementById('successMessage');
-      const errorDiv = document.getElementById('errorMessage');
-
-      errorDiv.textContent = mensagem;
-      errorDiv.style.display = 'block';
-      successDiv.style.display = 'none';
-    }
-
-    function ocultarMensagens() {
-      document.getElementById('successMessage').style.display = 'none';
-      document.getElementById('errorMessage').style.display = 'none';
-    }
-
-    function voltarMenu() {
-      google.script.run.retornarAoMenuPrincipal();
+    function showToast(msg, type) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `toast ${type}`;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 2500);
     }
   </script>
 </body>

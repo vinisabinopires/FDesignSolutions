@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>New Quote — F/Design Solutions</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1b2b5a, #2b5797);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .form-container {
+      width: 82%;
+      max-width: 780px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      padding: 30px 44px 40px;
+      animation: fadeIn 0.6s ease;
+      position: relative;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: 0.3s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.25); }
+
+    .form-title {
+      text-align: center;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #fbbc04;
+      margin-bottom: 4px;
+    }
+
+    .form-subtitle {
+      text-align: center;
+      font-size: 1rem;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 28px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px 24px;
+    }
+
+    .form-grid > div {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #f1f1f1;
+      margin-bottom: 5px;
+    }
+
+    input, select, textarea {
+      width: 92%;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 0.95rem;
+      transition: all 0.25s ease;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: rgba(255,255,255,0.75);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #fbbc04;
+      box-shadow: 0 0 0 2px rgba(251,188,4,0.3);
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: none;
+      grid-column: 1 / 4;
+      width: 100%;
+      margin: 0;
+    }
+
+    .main-button {
+      margin-top: 24px;
+      grid-column: 1 / span 3;
+      width: 97%;
+      padding: 14px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1b2b5a;
+      background: linear-gradient(90deg, #fbbc04, #ffcc33);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(251,188,4,0.3);
+    }
+
+    .main-button:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(90deg, #ffcc33, #fbbc04);
+      box-shadow: 0 6px 16px rgba(251,188,4,0.45);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: linear-gradient(90deg, #2b5797, #3b6ac2);
+      color: #fff;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-weight: 500;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.4s ease;
+      z-index: 200;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: linear-gradient(90deg, #43a047, #66bb6a); }
+    .toast.error { background: linear-gradient(90deg, #e53935, #ef5350); }
+  </style>
+</head>
+
+<body>
+  <div class="form-container">
+    <button id="btnBackDashboard" class="back-btn">← Back to Dashboard</button>
+
+    <h1 class="form-title">💡 New Quote</h1>
+    <p class="form-subtitle">Register a new customer quote and save it to the system.</p>
+
+    <form id="quoteForm">
+      <div class="form-grid">
+        <div><label>Client Name</label><input id="clienteNome" required placeholder="Enter client name"></div>
+        <div><label>Client Email</label><input id="clienteEmail" type="email" placeholder="example@email.com"></div>
+        <div><label>Client Phone</label><input id="clienteTel" placeholder="(000) 000-0000"></div>
+
+        <div><label>Category</label><input id="produtoCategoria" placeholder="Ex: Wrap / Banner / Card"></div>
+        <div><label>Product</label><input id="produtoNome" placeholder="Enter product name"></div>
+        <div><label>Quantity</label><input id="quantidade" type="number" min="1" value="1"></div>
+        <div><label>Estimated Value ($)</label><input id="valorEstimado" type="number" step="0.01" placeholder="0.00"></div>
+
+        <div><label>Origin</label>
+          <select id="origem">
+            <option value="">Select...</option>
+            <option>Walk-in</option>
+            <option>WhatsApp</option>
+            <option>Email</option>
+            <option>Website</option>
+          </select>
+        </div>
+
+        <div><label>Communication Channel</label>
+          <select id="canalComunicacao">
+            <option value="">Select...</option>
+            <option>WhatsApp</option>
+            <option>Social Media</option>
+            <option>Referral (add in notes)</option>
+            <option>Advertisement</option>
+            <option>Passing by the store</option>
+          </select>
+        </div>
+
+        <div style="grid-column: span 2;">
+          <label>Description</label>
+          <textarea id="descricao" placeholder="Write a short description or add referral details..."></textarea>
+        </div>
+      </div>
+
+      <button type="button" class="main-button" id="saveQuoteBtn">💾 Save Quote</button>
+    </form>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let isSaving = false;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const backBtn = document.getElementById("btnBackDashboard");
+      const saveBtn = document.getElementById("saveQuoteBtn");
+
+      if (backBtn) {
+        backBtn.addEventListener("click", () => {
+          document.body.style.opacity = "0";
+          document.body.style.transition = "opacity 0.4s ease";
+          setTimeout(() => {
+            google.script.run
+              .withFailureHandler(err => alert("❌ Erro ao retornar: " + err.message))
+              .abrirHomeVendedor();
+          }, 350);
+        });
+      }
+
+      if (saveBtn) {
+        saveBtn.addEventListener("click", confirmarSalvar);
+      }
+    });
+
+    function confirmarSalvar() {
+      if (isSaving) return;
+      isSaving = true;
+
+      const f = getFormData();
+      const btn = document.getElementById("saveQuoteBtn");
+
+      if (!f.clienteNome || !f.produtoNome) {
+        showToast("Please fill Client Name and Product.", "error");
+        isSaving = false;
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Saving...";
+
+      google.script.run
+        .withSuccessHandler(res => {
+          showToast(`✅ Quote saved successfully (ID: ${res.id})`, "success");
+          document.getElementById("quoteForm").reset();
+          btn.disabled = false;
+          btn.innerHTML = "💾 Save Quote";
+          isSaving = false;
+        })
+        .withFailureHandler(err => {
+          showToast(`❌ Error saving quote: ${err.message}`, "error");
+          btn.disabled = false;
+          btn.innerHTML = "💾 Save Quote";
+          isSaving = false;
+        })
+        .salvarOrcamento(f);
+    }
+
+    function getFormData() {
+      return {
+        origem: document.getElementById("origem").value,
+        clienteNome: document.getElementById("clienteNome").value,
+        clienteEmail: document.getElementById("clienteEmail").value,
+        clienteTel: document.getElementById("clienteTel").value,
+        produtoCategoria: document.getElementById("produtoCategoria").value,
+        produtoNome: document.getElementById("produtoNome").value,
+        quantidade: document.getElementById("quantidade").value,
+        valorEstimado: document.getElementById("valorEstimado").value,
+        descricao: document.getElementById("descricao").value,
+        canalComunicacao: document.getElementById("canalComunicacao").value
+      };
+    }
+
+    function showToast(msg, type = "success") {
+      const t = document.getElementById("toast");
+      if (!t) return;
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => (t.className = "toast"), 3500);
+    }
+  </script>
+</body>
+</html>

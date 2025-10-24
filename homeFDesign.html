@@ -267,6 +267,35 @@
 </head>
 
 <body>
+  <!-- 🔙 BOTÃO DE RETORNO -->
+  <button class="botao-voltar" onclick="voltarHome()">← Voltar ao Painel</button>
+
+  <style>
+    .botao-voltar {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s;
+      z-index: 9999;
+    }
+    .botao-voltar:hover {
+      background: rgba(255,255,255,0.25);
+    }
+  </style>
+
+  <script>
+    function voltarHome() {
+      window.location.href = "homeVendedor.html";
+    }
+  </script>
+
   <header class="header">
     <div class="logo-section">
       <img src="https://fdesignsolutions.com/wp-content/uploads/2023/08/logo-F-design-branca-768x231.webp"
@@ -352,6 +381,13 @@
           <div class="action-title">Dashboard de Vendas</div>
           <div class="action-description">Visualize relatórios detalhados</div>
         </div>
+
+        <div class="action-card" onclick="abrirFormQuote()">
+         <span class="action-icon">💡</span>
+         <div class="action-title">Novo Orçamento</div>
+         <div class="action-description">Crie um novo orçamento para o cliente</div>
+        </div>
+
 
         <div class="action-card" onclick="abrirPainelAdmin()" id="adminCard" style="display: none;">
           <span class="action-icon">⚙️</span>
@@ -530,5 +566,14 @@
       errorDiv.style.display = 'block';
     }
   </script>
+
+  <script>
+  
+function abrirFormQuote() {
+  google.script.run.abrirFormQuote();
+}
+
+</script>
+
 </body>
 </html>

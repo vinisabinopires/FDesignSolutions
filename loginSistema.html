@@ -209,6 +209,35 @@
 </head>
 
 <body>
+  <!-- 🔙 BOTÃO DE RETORNO -->
+  <button class="botao-voltar" onclick="voltarHome()">← Voltar ao Painel</button>
+
+  <style>
+    .botao-voltar {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s;
+      z-index: 9999;
+    }
+    .botao-voltar:hover {
+      background: rgba(255,255,255,0.25);
+    }
+  </style>
+
+  <script>
+    function voltarHome() {
+      window.location.href = "homeVendedor.html";
+    }
+  </script>
+
   <div class="login-container">
     <div class="logo-section">
       <img src="https://fdesignsolutions.com/wp-content/uploads/2023/08/logo-F-design-azul-1024x308.webp"
@@ -332,21 +361,40 @@
     // HANDLERS DE RESPOSTA
     // =========================================
     function onLoginSuccess(result) {
-      console.log('✅ Login bem-sucedido:', result);
-      setLoadingState(false);
+  console.log('✅ Login bem-sucedido:', result);
+  setLoadingState(false);
 
-      if (result.success) {
-        mostrarSucesso('Login realizado com sucesso! Redirecionando...');
-        loginTentativas = 0; // Resetar contador
+  if (result.success) {
+    mostrarSucesso('Login realizado com sucesso! Redirecionando...');
+    loginTentativas = 0;
 
-        setTimeout(() => {
-          google.script.run.iniciarSistemaFDesign();
-        }, 1500);
-      } else {
-        loginTentativas++;
-        mostrarErro(result.message || 'Erro no login.');
-      }
-    }
+    // 🧠 Salvar sessão no navegador
+    sessionStorage.setItem("usuarioId", result.id);
+    sessionStorage.setItem("usuarioNome", result.nome);
+    sessionStorage.setItem("usuarioTipo", result.tipo);
+    sessionStorage.setItem("usuarioEmail", result.email);
+    sessionStorage.setItem("comissaoPadrao", result.comissaoPadrao);
+
+    // 🧭 Redirecionamento dinâmico (corrigido)
+    setTimeout(() => {
+      // delay adicional para sincronizar o contexto do Apps Script
+      setTimeout(() => {
+        if (result.tipo === "Admin") {
+          window.location.href = "painelAdmin.html";
+        } else if (["Vendedor", "Gerente", "Designer"].includes(result.tipo)) {
+          window.location.href = "homeVendedor.html";
+        } else {
+          window.location.href = "homeFDesign.html";
+        }
+      }, 600); // 👈 delay extra de 600 ms evita o erro do Google Drive
+    }, 600);
+
+  } else {
+    loginTentativas++;
+    mostrarErro(result.message || 'Erro no login.');
+  }
+}
+
 
     function onLoginError(error) {
       console.error('❌ Erro no login:', error);
