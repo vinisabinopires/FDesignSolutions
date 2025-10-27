@@ -1,0 +1,368 @@
+<!-- ==========================================================
+💠 F/DESIGN SOLUTIONS — FORM NOVA VENDA v4.1
+Minimal Structured + Glassmorphism Edition (Consolidated)
+========================================================== -->
+<div class="form-container">
+  <header class="form-header">
+    <h1>NEW SALE</h1>
+    <p class="subtitle">Register a new client transaction</p>
+  </header>
+
+  <form id="saleForm" onsubmit="handleReview(event)">
+    <h2 class="title">NEW SALE</h2>
+
+    <!-- 🔹 Tipo / Cliente / Empresa -->
+    <div class="form-grid">
+      <div class="field">
+        <label for="type">Sale Type *</label>
+        <select id="type" required>
+          <option value="">Select type</option>
+          <option value="New">New</option>
+          <option value="Old">Old</option>
+          <option value="Walk-in">Walk-in</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="clientName">Client Name *</label>
+        <input type="text" id="clientName" placeholder="Client full name" required />
+      </div>
+
+      <div class="field">
+        <label for="businessName">Business Name *</label>
+        <input type="text" id="businessName" placeholder="Business name" required />
+      </div>
+    </div>
+
+    <!-- 🔹 Produto e Valor -->
+    <div class="form-grid">
+      <div class="field full">
+        <label for="product">Product Description *</label>
+        <textarea id="product" rows="2" placeholder="Ex: Banner stand 35x85" required></textarea>
+      </div>
+
+      <div class="field">
+        <label for="amount">Amount ($) *</label>
+        <input type="number" id="amount" step="0.01" min="0" placeholder="Enter amount" required />
+      </div>
+    </div>
+
+    <!-- 🔹 Pagamento -->
+    <div class="form-grid">
+      <div class="field">
+        <label for="payment">Payment Method *</label>
+        <select id="payment" required>
+          <option value="">Select method</option>
+          <option value="Credit Card">Credit Card</option>
+          <option value="Cash">Cash</option>
+          <option value="Zelle">Zelle</option>
+          <option value="Bank Check">Bank Check</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="paymentStatus">Payment Status *</label>
+        <select id="paymentStatus" required onchange="toggleDepositField()">
+          <option value="">Select status</option>
+          <option value="Full Payment">Full Payment</option>
+          <option value="Half Payment">Half Payment</option>
+          <option value="Deposit only">Deposit only</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 🔹 Campo condicional de depósito -->
+    <div class="field" id="depositField" style="display: none;">
+      <label for="depositAmount">Deposit Amount ($)</label>
+      <input type="number" id="depositAmount" min="0" step="0.01" placeholder="Enter deposit value">
+    </div>
+
+    <!-- 🔹 Notas -->
+    <div class="field full">
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" rows="2" placeholder="Add any internal notes"></textarea>
+    </div>
+
+    <!-- 🔹 Botões -->
+    <div class="actions">
+      <button type="button" class="btn-secondary" onclick="voltar()">← Back</button>
+      <button type="submit" class="btn-primary">Review Sale</button>
+    </div>
+  </form>
+</div>
+
+<!-- ==========================================================
+🧾 MODAL DE CONFIRMAÇÃO
+========================================================== -->
+<div id="confirmModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Confirm Sale Details</h3>
+    <div id="confirmDetails"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="confirmSale()">Confirm & Register</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================
+🎨 ESTILO VISUAL
+========================================================== -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #1b2b5a, #283f87, #2b5797);
+    background-size: 300% 300%;
+    animation: gradientShift 18s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+  }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .form-container {
+    width: 95%;
+    max-width: 960px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 22px;
+    padding: 40px 50px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(18px);
+    animation: fadeIn 0.8s ease;
+  }
+
+  .form-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .form-header h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    color: #ffffffcc;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.75);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+
+  .field { display: flex; flex-direction: column; }
+  .field.full { grid-column: span 2; }
+
+  label {
+    font-weight: 600;
+    color: #f8f9fa;
+    margin-bottom: 6px;
+  }
+
+  input, select, textarea {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 15px;
+    background: rgba(255,255,255,0.9);
+    color: #202124;
+    outline: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+
+  textarea { resize: none; }
+  input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 2px #fbbc04; }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 25px;
+  }
+
+  .btn-primary, .btn-secondary {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+
+  .btn-primary {
+    background: #2b5797;
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: #fbbc04;
+    color: #202124;
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+  .btn-secondary:hover {
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-2px);
+  }
+
+  /* 🔹 Modal */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+  }
+  .modal.hidden { display: none; }
+
+  .modal-content {
+    background: rgba(17, 37, 77, 0.95);
+    color: #fff;
+    padding: 2rem;
+    border-radius: 16px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+  }
+
+  .modal-content h3 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    color: #fbbc04;
+    font-weight: 700;
+  }
+
+  .modal-content p {
+    font-size: 0.95rem;
+    margin: 6px 0;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+  }
+</style>
+
+<!-- ==========================================================
+⚙️ SCRIPT PRINCIPAL
+========================================================== -->
+<script>
+const val = id => document.getElementById(id).value;
+let formData = {};
+
+function toggleDepositField() {
+  const status = document.getElementById("paymentStatus").value;
+  document.getElementById("depositField").style.display = (status === "Deposit only") ? "block" : "none";
+}
+
+function handleReview(e) {
+  e.preventDefault();
+  const requiredFields = ["type", "clientName", "businessName", "product", "amount", "payment", "paymentStatus"];
+  let valid = true;
+
+  requiredFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el.value.trim()) {
+      el.style.boxShadow = "0 0 0 2px red";
+      valid = false;
+    } else el.style.boxShadow = "";
+  });
+
+  if (!valid) {
+    showToast("Please fill all required fields.", "error");
+    return;
+  }
+
+  const type = val("type");
+  const clientName = val("clientName");
+  const businessName = val("businessName");
+  const product = val("product");
+  const amount = parseFloat(val("amount") || 0);
+  const payment = val("payment");
+  const paymentStatus = val("paymentStatus");
+  const notes = val("notes");
+  const depositAmount = parseFloat(document.getElementById("depositAmount")?.value || 0);
+
+  let paid = 0;
+  if (paymentStatus === "Full Payment") paid = amount;
+  else if (paymentStatus === "Half Payment") paid = amount / 2;
+  else if (paymentStatus === "Deposit only") paid = depositAmount;
+
+  const balanceDue = (amount - paid).toFixed(2);
+
+  formData = { type, clientName, businessName, product, amount: amount.toFixed(2), payment, paymentStatus, depositAmount: depositAmount.toFixed(2), paid: paid.toFixed(2), balanceDue, notes };
+
+  showModal();
+}
+
+function showModal() {
+  const modal = document.getElementById("confirmModal");
+  const body = document.getElementById("confirmDetails");
+
+  body.innerHTML = `
+    <p><strong>Type:</strong> ${formData.type}</p>
+    <p><strong>Client:</strong> ${formData.clientName}</p>
+    <p><strong>Business:</strong> ${formData.businessName}</p>
+    <p><strong>Product:</strong> ${formData.product}</p>
+    <p><strong>Amount:</strong> $${formData.amount}</p>
+    <p><strong>Payment Method:</strong> ${formData.payment}</p>
+    <p><strong>Status:</strong> ${formData.paymentStatus}</p>
+    <p><strong>Paid:</strong> $${formData.paid}</p>
+    <p><strong>Balance Due:</strong> $${formData.balanceDue}</p>
+    <p><strong>Notes:</strong> ${formData.notes || "-"}</p>
+  `;
+
+  modal.classList.remove("hidden");
+}
+
+function closeModal() { document.getElementById("confirmModal").classList.add("hidden"); }
+
+function confirmSale() {
+  google.script.run
+    .withSuccessHandler(() => {
+      showToast("✅ Sale registered successfully!", "success");
+      closeModal();
+      document.getElementById("saleForm").reset();
+      document.getElementById("depositField").style.display = "none";
+    })
+    .withFailureHandler(err => showToast("❌ Error: " + err.message, "error"))
+    .registrarVenda(formData);
+}
+
+function voltar() { google.script.run.abrirHomeVendedor(); }
+
+function showToast(message, type) {
+  const toast = document.createElement("div");
+  toast.textContent = message;
+  toast.className = "toast " + type;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add("show"), 50);
+  setTimeout(() => toast.classList.remove("show"), 4000);
+  setTimeout(() => toast.remove(), 4500);
+}
+</script>

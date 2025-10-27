@@ -1,0 +1,373 @@
+<!-- ==========================================================
+💠 F/DESIGN SOLUTIONS — SELLER DASHBOARD v4.0
+Brand Presence Edition — larger logo, stronger typography
+========================================================== -->
+<div class="dashboard">
+  <header class="dashboard-header">
+    <div class="left">
+      <h1>Hello, <span id="userName">Seller</span> 👋</h1>
+      <p class="subtext" id="dailyMessage">Let’s make today a great day ☀️</p>
+    </div>
+    <img class="logo"
+         src="https://fdesignsolutions.com/wp-content/uploads/2023/08/logo-F-design-branca-1024x308.webp"
+         alt="F/Design Solutions">
+  </header>
+
+<main style="display: flex; flex-direction: column; align-items: center; padding: 40px;">
+  <div class="button-grid">
+  <button class="card primary" onclick="google.script.run.abrirFormVendas()">🧾 New Sale</button>
+  <button class="card primary" onclick="google.script.run.abrirFormQuote()">📝 New Quote</button>
+
+  <!-- 🔵 NOVO BOTÃO NEXUS (ocupando duas colunas) -->
+  <button class="btn-nexus" onclick="abrirNexus()">🌐 NEXUS</button>
+
+  <button class="card secondary profile" id="profileButton" onclick="abrirPerfilUsuario()">👤 Seller Profile</button>
+  <button class="card logout" onclick="logout()">🚪 Logout</button>
+</div>
+
+
+</main>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const nome = sessionStorage.getItem("usuarioNome") || "Seller";
+    const primeiroNome = nome.split(" ")[0];
+    
+    // Atualiza o título principal
+    document.getElementById("userName").textContent = primeiroNome;
+
+    // Atualiza o botão de perfil dinamicamente
+    document.getElementById("profileButton").innerHTML = `👤 ${primeiroNome} Profile`;
+  });
+
+  function abrirPerfilUsuario() {
+    alert("🔧 Profile page under development...");
+  }
+
+
+  function logout() {
+    if (confirm("Are you sure you want to logout?")) {
+      google.script.run.encerrarSessao();
+      google.script.host.close();
+    }
+  }
+</script>
+
+
+<style>
+  .button-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .card {
+    width: 100%;
+    height: 95px;
+    border-radius: 14px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  }
+
+/* 🔵 BOTÃO NEXUS — versão com azul sólido */
+.btn-nexus {
+  grid-column: span 2;
+  height: 95px;
+  border-radius: 14px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border: none;
+  color: #FFD43B; /* amarelo oficial F/Design */
+  background: #0d1f45; /* ✅ azul sólido mais profundo */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-nexus:hover {
+  background: #132b60; /* tom ligeiramente mais claro no hover */
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.btn-nexus:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.35);
+  }
+
+  .card.primary {
+    background: linear-gradient(135deg, #fbbc04, #ffcc33);
+    color: #222;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+  }
+
+  .card.secondary {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .card.profile {
+    font-style: italic;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+
+  .card.logout {
+    background: rgba(255, 56, 56, 0.15);
+    color: #ffbaba;
+    border: 1px solid rgba(255, 56, 56, 0.25);
+  }
+
+  .card.logout:hover {
+    background: rgba(255, 56, 56, 0.3);
+  }
+
+  @media (max-width: 700px) {
+    .button-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+  function abrirFormVendas() {
+    google.script.run.abrirFormVendas();
+  }
+
+  function abrirNexus() {
+  google.script.run.withSuccessHandler(html => {
+    document.open();
+    document.write(html);
+    document.close();
+  }).abrirPaginaSistema('nexusSearch.html'); // ✅ nome da página Nexus
+}
+
+  function abrirFormGerenciar() {
+    google.script.run.abrirFormGerenciar();
+  }
+</script>
+
+<style>
+  .btn {
+    background: #fbbc04;
+    color: #202124;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+    width: 200px;
+  }
+  .btn:hover { background: #ffd54f; }
+</style>
+
+  <footer class="dashboard-footer">
+    <p id="motivation" class="motivation"></p>
+    <p class="footer-text">F/Design Solutions — Newark, NJ</p>
+  </footer>
+</div>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap');
+
+  * {
+    box-sizing: border-box;
+    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #1b2b5a, #283f87, #2b5797);
+    background-size: 300% 300%;
+    animation: gradientShift 18s ease infinite;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .dashboard {
+    width: 94%;
+    max-width: 960px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 22px;
+    padding: 34px 50px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    backdrop-filter: blur(18px);
+    animation: fadeIn 0.8s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    padding-bottom: 10px;
+  }
+
+  .logo {
+    width: 175px; /* 🔥 Aumento da logo */
+    opacity: 0.97;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,0.25));
+    transition: transform 0.3s ease;
+  }
+
+  .logo:hover {
+    transform: scale(1.05);
+  }
+
+  h1 {
+    font-size: 2.6rem; /* Aumento leve */
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+
+  .subtext {
+    font-size: 1.25rem; /* Mais destaque ao subtítulo */
+    color: #e8ecf7;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .button-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 4px;
+  }
+
+  .card {
+    width: 100%;
+    height: 90px;
+    border-radius: 14px;
+    font-size: 1.25rem; /* Texto maior nos botões */
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.35);
+  }
+
+  .primary {
+    background: linear-gradient(135deg, #fbbc04, #ffcc33);
+    color: #222;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.4);
+  }
+
+  .secondary {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .metric {
+    background: linear-gradient(135deg, #2b5797, #3b6ac2);
+    color: #fff;
+    grid-column: span 2;
+  }
+
+  .dashboard-footer {
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding-top: 8px;
+  }
+
+  .motivation {
+    font-style: italic;
+    font-size: 1.15rem;
+    color: #f2f3f8;
+    margin-bottom: 4px;
+    animation: fadeText 2s ease-in;
+  }
+
+  @keyframes fadeText {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .footer-text {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 700px) {
+    .button-grid { grid-template-columns: 1fr; }
+    .metric { grid-column: span 1; }
+    .card { height: 95px; }
+  }
+</style>
+
+<script>
+  const nomeUsuario = sessionStorage.getItem("usuarioNome") || "Seller";
+  document.getElementById("userName").innerText = nomeUsuario;
+
+  const greetings = [
+    "Let’s make today a great day ☀️",
+    "Your creativity moves F/Design 🚀",
+    "Every client is a new story to tell 🎨",
+    "Good design makes things work 💡",
+    "Innovation starts with your ideas ✨"
+  ];
+
+  const phrases = [
+    "Design with passion, deliver with excellence 💫",
+    "Focus, create and inspire ✨",
+    "Today is a great day to make a difference 🎯",
+    "You’re part of what makes F/Design incredible 💛"
+  ];
+
+    document.getElementById("dailyMessage").innerText =
+    greetings[Math.floor(Math.random() * greetings.length)];
+  document.getElementById("motivation").innerText =
+    phrases[Math.floor(Math.random() * phrases.length)];
+</script>
+

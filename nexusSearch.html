@@ -1,0 +1,193 @@
+<!-- ==========================================================
+💠 F/DESIGN SOLUTIONS — NEXUS SEARCH (Dark Glass v3)
+========================================================== -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nexus Search</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top, #0a0a1a 0%, #000 100%);
+    font-family: 'Poppins', sans-serif;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  header {
+    position: absolute;
+    top: 25px;
+    left: 30px;
+  }
+
+  .back-btn {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: all .3s ease;
+  }
+  .back-btn:hover {
+    background: rgba(241,196,15,0.25);
+  }
+
+  h1 {
+    font-size: 6rem;
+    font-weight: 700;
+    letter-spacing: -2px;
+    background: linear-gradient(90deg, #fff 10%, #f1c40f 80%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 40px rgba(241,196,15,0.3);
+    margin-bottom: 50px;
+    user-select: none;
+  }
+
+  .search-box {
+    width: 600px;
+    height: 65px;
+    border-radius: 40px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 25px rgba(0,0,0,0.4);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    padding: 0 25px;
+    transition: all 0.3s ease;
+  }
+  .search-box:focus-within {
+    box-shadow: 0 0 30px rgba(241,196,15,0.3);
+    transform: scale(1.02);
+  }
+
+  input {
+    flex: 1;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1.3rem;
+    color: #fff;
+    caret-color: #f1c40f;
+  }
+  input::placeholder {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .results-container {
+    margin-top: 50px;
+    width: 80%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+    max-height: 55vh;
+  }
+
+  .result-card {
+    background: rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 20px 30px;
+    backdrop-filter: blur(8px);
+    transition: .3s;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .result-card:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+  }
+  .result-title { font-weight: 600; font-size: 1.1rem; }
+  .result-subtext { font-size: 0.9rem; opacity: 0.8; }
+  .result-type {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+    color: #f1c40f;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  @media(max-width:700px){
+    h1{font-size:3.5rem;}
+    .search-box{width:85%;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <button class="back-btn" onclick="voltarMenu()">⬅ Menu</button>
+</header>
+
+<h1>nexus</h1>
+
+<div class="search-box">
+  <input id="searchInput" type="text"
+    placeholder="Buscar por cliente, telefone, email ou produto..."
+    oninput="buscarNexus()" autofocus />
+</div>
+
+<div id="results" class="results-container"></div>
+
+<script>
+  // 🔄 Evita expiração de sessão
+  setInterval(() => { google.script.run.keepAlive(); }, 1000 * 60 * 3);
+
+  let timeout = null;
+  function buscarNexus(){
+    const q=document.getElementById("searchInput").value.trim();
+    clearTimeout(timeout);
+    if(!q){document.getElementById("results").innerHTML="";return;}
+    timeout=setTimeout(()=>{
+      google.script.run.withSuccessHandler(renderResults).buscarNexus(q);
+    },400);
+  }
+
+  function renderResults(data){
+    const c=document.getElementById("results");
+    c.innerHTML="";
+    if(!data||data.length===0){
+      c.innerHTML="<p style='opacity:0.6;'>Nenhum resultado encontrado.</p>";
+      return;
+    }
+    data.forEach(item=>{
+      const d=document.createElement("div");
+      d.className="result-card";
+      d.innerHTML=`
+        <div>
+          <div class='result-title'>${item.nomeCliente||item.produto}</div>
+          <div class='result-subtext'>${item.telefone||item.email||""}</div>
+        </div>
+        <div class='result-type'>${item.tipo}</div>
+      `;
+      d.onclick=()=>abrirItem(item);
+      c.appendChild(d);
+    });
+  }
+
+  function abrirItem(item){
+    if(item.tipo==="Venda"){ google.script.run.abrirFormVendas(item.id);}
+    else if(item.tipo==="Orçamento"){ google.script.run.abrirFormQuote(item.id);}
+  }
+
+  function voltarMenu(){
+    google.script.run.abrirPaginaSistema('homeFDesign');
+  }
+</script>
+</body>
+</html>
