@@ -309,7 +309,7 @@
 
 <body>
   <!-- 🔙 BOTÃO DE RETORNO -->
-  <button class="botao-voltar" onclick="voltarHome()">← Voltar ao Painel</button>
+<button class="botao-voltar" onclick="voltarMenu()">← Voltar ao Painel</button>
 
   <style>
     .botao-voltar {
@@ -330,12 +330,6 @@
       background: rgba(255,255,255,0.25);
     }
   </style>
-
-  <script>
-    function voltarHome() {
-      window.location.href = "homeVendedor.html";
-    }
-  </script>
 
   <div class="container">
     <div class="header">
@@ -568,26 +562,39 @@
     }
 
     // =========================================
-    // EDITAR REGISTRO
-    // =========================================
-    function editarRegistro(invoice, linha) {
-      // Buscar dados completos do registro
-      google.script.run
-        .withSuccessHandler(function(result) {
-          if (result) {
-            document.getElementById('editRow').value = result.linha;
-            document.getElementById('editTipo').value = result.tipo;
-            document.getElementById('editCliente').value = result.cliente;
-            document.getElementById('editEmpresa').value = result.empresa;
-            document.getElementById('editInvoice').value = result.invoice;
-            document.getElementById('editProduto').value = result.produto;
-            document.getElementById('editValor').value = result.valor;
+// EDITAR REGISTRO
+// =========================================
+function editarRegistro(invoice, linha) {
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result) {
+        document.getElementById('editRow').value = result.linha;
+        document.getElementById('editTipo').value = result.tipo;
+        document.getElementById('editCliente').value = result.cliente;
+        document.getElementById('editEmpresa').value = result.empresa;
+        document.getElementById('editInvoice').value = result.invoice;
+        document.getElementById('editProduto').value = result.produto;
+        document.getElementById('editValor').value = result.valor;
+        abrirModalEdicao(); // ✅ abre modal após carregar dados
+      }
+    })
+    .buscarVenda(invoice);
+}
 
-            document.getElementById('editModal').style.display = 'flex';
-          }
-        })
-        .buscarVenda(invoice);
-    }
+function abrirModalEdicao() {
+  const modal = document.getElementById('editModal');
+  modal.style.display = 'flex';
+  modal.style.opacity = '0';
+  modal.style.transition = 'opacity 0.3s ease';
+  setTimeout(() => modal.style.opacity = '1', 50);
+}
+
+function fecharModal() {
+  const modal = document.getElementById('editModal');
+  modal.style.transition = 'opacity 0.3s ease';
+  modal.style.opacity = '0';
+  setTimeout(() => modal.style.display = 'none', 300);
+}
 
     function handleEdit(event) {
       event.preventDefault();
@@ -678,6 +685,18 @@
     function voltar() {
       google.script.run.retornarAoMenuPrincipal();
     }
+
+    function voltarMenu() {
+  document.body.style.transition = "opacity 0.4s ease";
+  document.body.style.opacity = "0";
+  setTimeout(() => {
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirHomeVendedor_WEB(); // ✅ versão Web compatível com Nexus
+  }, 350);
+}
   </script>
 </body>
 </html>

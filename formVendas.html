@@ -85,7 +85,7 @@ Minimal Structured + Glassmorphism Edition (Consolidated)
 
     <!-- 🔹 Botões -->
     <div class="actions">
-      <button type="button" class="btn-secondary" onclick="voltar()">← Back</button>
+      <button type="button" class="btn-secondary" onclick="voltarMenu()">← Back</button>
       <button type="submit" class="btn-primary">Review Sale</button>
     </div>
   </form>
@@ -266,6 +266,31 @@ Minimal Structured + Glassmorphism Edition (Consolidated)
     justify-content: space-between;
     margin-top: 1.5rem;
   }
+
+  .toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: rgba(17, 37, 77, 0.9);
+  color: #fff;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.4s ease;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+}
+.toast.success { border-left: 4px solid #00c853; }
+.toast.error { border-left: 4px solid #ff5252; }
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 </style>
 
 <!-- ==========================================================
@@ -354,7 +379,18 @@ function confirmSale() {
     .registrarVenda(formData);
 }
 
-function voltar() { google.script.run.abrirHomeVendedor(); }
+function voltarMenu() {
+  document.body.style.transition = "opacity 0.4s ease";
+  document.body.style.opacity = "0";
+  setTimeout(() => {
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirHomeVendedor_WEB(); // ✅ versão sem getUi()
+  }, 350);
+}
+
 
 function showToast(message, type) {
   const toast = document.createElement("div");
