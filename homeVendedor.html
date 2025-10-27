@@ -15,8 +15,10 @@ Brand Presence Edition — larger logo, stronger typography
 
 <main style="display: flex; flex-direction: column; align-items: center; padding: 40px;">
   <div class="button-grid">
-  <button class="card primary" onclick="google.script.run.abrirFormVendas()">🧾 New Sale</button>
-  <button class="card primary" onclick="google.script.run.abrirFormQuote()">📝 New Quote</button>
+  <button class="card primary" onclick="abrirFormVendas()">🧾 New Sale</button>
+  <button class="card primary" onclick="abrirFormQuote()">📝 New Quote</button>
+
+
 
   <!-- 🔵 NOVO BOTÃO NEXUS (ocupando duas colunas) -->
   <button class="btn-nexus" onclick="abrirNexus()">🌐 NEXUS</button>
@@ -151,22 +153,43 @@ Brand Presence Edition — larger logo, stronger typography
 </style>
 
 <script>
+  // ==========================================================
+  // 🌐 NAVEGAÇÃO UNIFICADA — F/Design WebApp Router
+  // ==========================================================
+
   function abrirFormVendas() {
-    google.script.run.abrirFormVendas();
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirFormVendas(); // ✅ abre o formVendas.html
+  }
+
+  function abrirFormQuote() {
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirFormQuote(); // ✅ abre o formQuote.html
   }
 
   function abrirNexus() {
-  google.script.run.withSuccessHandler(html => {
-    document.open();
-    document.write(html);
-    document.close();
-  }).abrirPaginaSistema('nexusSearch.html'); // ✅ nome da página Nexus
-}
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirPaginaSistema('nexusSearch.html'); // 🌐 página Nexus
+  }
 
   function abrirFormGerenciar() {
-    google.script.run.abrirFormGerenciar();
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirFormGerenciar(); // 🗂️ página de gerenciamento
   }
 </script>
+
 
 <style>
   .btn {
@@ -347,10 +370,11 @@ Brand Presence Edition — larger logo, stronger typography
 </style>
 
 <script>
-  const nomeUsuario = sessionStorage.getItem("usuarioNome") || "Seller";
+(function() {
+  var nomeUsuario = sessionStorage.getItem("usuarioNome") || "Seller";
   document.getElementById("userName").innerText = nomeUsuario;
 
-  const greetings = [
+  var greetings = [
     "Let’s make today a great day ☀️",
     "Your creativity moves F/Design 🚀",
     "Every client is a new story to tell 🎨",
@@ -358,16 +382,17 @@ Brand Presence Edition — larger logo, stronger typography
     "Innovation starts with your ideas ✨"
   ];
 
-  const phrases = [
+  var phrases = [
     "Design with passion, deliver with excellence 💫",
     "Focus, create and inspire ✨",
     "Today is a great day to make a difference 🎯",
     "You’re part of what makes F/Design incredible 💛"
   ];
 
-    document.getElementById("dailyMessage").innerText =
+  document.getElementById("dailyMessage").innerText =
     greetings[Math.floor(Math.random() * greetings.length)];
   document.getElementById("motivation").innerText =
     phrases[Math.floor(Math.random() * phrases.length)];
+})();
 </script>
 

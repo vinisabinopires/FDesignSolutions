@@ -35,20 +35,27 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .back-btn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff;
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: 0.3s;
-    }
-    .back-btn:hover { background: rgba(255,255,255,0.25); }
+    /* 🔙 Botão de Voltar — padrão Nexus Flow */
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: 0.25s;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
 
     .form-title {
       text-align: center;
@@ -158,7 +165,7 @@
 
 <body>
   <div class="form-container">
-    <button id="btnBackDashboard" class="back-btn">← Back to Dashboard</button>
+   <button class="back-btn" onclick="voltarMenu()">← Voltar ao Painel</button>
 
     <h1 class="form-title">💡 New Quote</h1>
     <p class="form-subtitle">Register a new customer quote and save it to the system.</p>
@@ -213,18 +220,6 @@
     document.addEventListener("DOMContentLoaded", () => {
       const backBtn = document.getElementById("btnBackDashboard");
       const saveBtn = document.getElementById("saveQuoteBtn");
-
-      if (backBtn) {
-        backBtn.addEventListener("click", () => {
-          document.body.style.opacity = "0";
-          document.body.style.transition = "opacity 0.4s ease";
-          setTimeout(() => {
-            google.script.run
-              .withFailureHandler(err => alert("❌ Erro ao retornar: " + err.message))
-              .abrirHomeVendedor();
-          }, 350);
-        });
-      }
 
       if (saveBtn) {
         saveBtn.addEventListener("click", confirmarSalvar);
@@ -286,6 +281,19 @@
       t.className = `toast ${type} show`;
       setTimeout(() => (t.className = "toast"), 3500);
     }
+
+    function voltarMenu() {
+  document.body.style.transition = "opacity 0.4s ease";
+  document.body.style.opacity = "0";
+  setTimeout(() => {
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirHomeVendedor_WEB(); // versão web compatível
+  }, 350);
+}
+
   </script>
 </body>
 </html>

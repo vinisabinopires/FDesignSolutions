@@ -2330,50 +2330,71 @@ function converterOrcamentoParaVenda(id) {
   return { success: false, message: "Orçamento não encontrado." };
 }
 
-// ===============================
-// 🔹 SELLER PANEL: SUB-SCREENS
-// ===============================
+// ===============================================================
+// 🔹 SELLER PANEL: SUB-SCREENS (compatível com WebApp + Planilha)
+// ===============================================================
+
+// 🔸 versão web — usada pelo F/Design Nexus
+function abrirHomeVendedor_WEB() {
+  return HtmlService.createHtmlOutputFromFile('homeVendedor')
+    .setTitle('Painel do Vendedor — F/Design Solutions')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .getContent();
+}
+
+// 🔸 versão modal — usada se for executado dentro da planilha
 function abrirHomeVendedor() {
-  const html = HtmlService.createHtmlOutputFromFile('homeVendedor')
-    .setWidth(1200)
-    .setHeight(800);
-  SpreadsheetApp.getUi().showModalDialog(html, 'F/Design Solutions');
+  const html = HtmlService.createHtmlOutputFromFile('homeVendedor');
+  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1200).setHeight(800), 'F/Design Solutions');
 }
 
-function abrirFormQuote() {
-  const html = HtmlService.createHtmlOutputFromFile("formQuote")
-    .setWidth(1200)
-    .setHeight(800)
-    .setSandboxMode(HtmlService.SandboxMode.IFRAME); // 🔥 garante acesso aos métodos Apps Script
-  SpreadsheetApp.getUi().showModalDialog(html, "New Quote — F/Design Solutions");
-}
-
+// ==========================================================
+// 🧾 FORMULÁRIO DE VENDAS — WebApp version
+// ==========================================================
 function abrirFormVendas() {
-  const html = HtmlService.createTemplateFromFile("formVendas").evaluate();
-  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1000).setHeight(720), "New Sale — F/Design Solutions");
+  const html = HtmlService.createHtmlOutputFromFile('formVendas')
+    .setTitle('Nova Venda — F/Design Solutions')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return html.getContent();
+}
+
+// ==========================================================
+// 📝 FORMULÁRIO DE ORÇAMENTO — WebApp version
+// ==========================================================
+function abrirFormQuote() {
+  const html = HtmlService.createHtmlOutputFromFile('formQuote')
+    .setTitle('Novo Orçamento — F/Design Solutions')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return html.getContent();
 }
 
 // ===============================================================
-// 🏠 Função para abrir o painel principal (homeFDesign.html)
+// 🏠 HOME PRINCIPAL (modo planilha)
 // ===============================================================
 function abrirHomeFDesign() {
-  const html = HtmlService.createHtmlOutputFromFile('homeFDesign')
-    .setWidth(1200)
-    .setHeight(800);
-  SpreadsheetApp.getUi().showModalDialog(html, 'F/Design Solutions');
+  const html = HtmlService.createHtmlOutputFromFile('homeFDesign');
+  SpreadsheetApp.getUi().showModalDialog(html.setWidth(1200).setHeight(800), 'F/Design Solutions');
 }
 
-
+// ===============================================================
+// 📊 DASHBOARD DE VENDAS (modo planilha)
+// ===============================================================
 function abrirDashboardVendas() {
   const html = HtmlService.createTemplateFromFile("dashboardVendas").evaluate();
   SpreadsheetApp.getUi().showModalDialog(html.setWidth(1100).setHeight(720), "Sales Dashboard — F/Design Solutions");
 }
 
+// ===============================================================
+// 🗂️ GERENCIAR ORÇAMENTOS (modo planilha)
+// ===============================================================
 function abrirFormGerenciar() {
   const html = HtmlService.createTemplateFromFile("orcamentosDashboard").evaluate();
   SpreadsheetApp.getUi().showModalDialog(html.setWidth(1100).setHeight(720), "Quotes — F/Design Solutions");
 }
 
+// ===============================================================
+// 🧠 PAINEL ADMINISTRATIVO (modo planilha)
+// ===============================================================
 function abrirPainelAdmin() {
   const html = HtmlService.createTemplateFromFile("painelAdmin").evaluate();
   SpreadsheetApp.getUi().showModalDialog(html.setWidth(1200).setHeight(720), "Admin Panel — F/Design Solutions");
