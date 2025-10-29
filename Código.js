@@ -1,22 +1,20 @@
 // ==========================================================
 // 🌐 RENDERIZAÇÃO DE PÁGINAS (F/Design Nexus Flow)
 // ==========================================================
-
-function doGet(e) {
+function doGet() {
   return HtmlService.createHtmlOutputFromFile('homeFDesign')
     .setTitle('F/Design Nexus — Gateway')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// ============================================================
-// 🔧 Função correta para renderizar páginas internas
-// ============================================================
+// ✅ Função central para abrir páginas internas
 function abrirPaginaSistema(pagina) {
   try {
     if (!pagina) throw new Error("Página não especificada.");
-    const file = HtmlService.createHtmlOutputFromFile(pagina);
-    if (!file) throw new Error(`Arquivo ${pagina}.html não encontrado.`);
-    return file.getContent(); // ✅ retorna apenas o HTML puro
+    const html = HtmlService.createHtmlOutputFromFile(pagina)
+      .setTitle("F/Design Nexus")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    return html.getContent(); // 🔑 retorno em HTML puro
   } catch (err) {
     Logger.log("❌ Erro ao abrir página: " + err.message);
     return `<p style="color:red;">Erro ao abrir página: ${err.message}</p>`;
@@ -29,36 +27,62 @@ function abrirHomePorTipo(tipoUsuario) {
   try {
     if (!tipoUsuario) throw new Error("Tipo de usuário não especificado.");
 
-    let pagina;
-    switch (tipoUsuario.toUpperCase()) {
-      case 'ADMIN':
-        pagina = 'painelAdmin';
+    let pagina = "";
+    switch (tipoUsuario.toString().trim().toUpperCase()) {
+      case "ADMIN":
+        pagina = "painelAdmin";
         break;
-      case 'SUPERVISOR':
-        pagina = 'dashboardVendas';
+      case "SUPERVISOR":
+        pagina = "dashboardVendas";
         break;
-      case 'VENDEDOR':
+      case "VENDEDOR":
       default:
-        pagina = 'homeVendedor';
+        pagina = "homeVendedor";
         break;
     }
 
-    const html = HtmlService.createHtmlOutputFromFile(pagina)
-      .setTitle('F/Design Solutions — ' + pagina)
+    const htmlOutput = HtmlService.createHtmlOutputFromFile(pagina)
+      .setTitle("F/Design Solutions — " + pagina)
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
-    return html.getContent();
+    const conteudo = htmlOutput.getContent();
+    if (!conteudo) throw new Error("Página retornou conteúdo vazio.");
 
+    return conteudo; // ✅ retorna HTML puro, o front entende corretamente
   } catch (err) {
-    Logger.log("Erro ao redirecionar por tipo: " + err);
-    return HtmlService.createHtmlOutput(
-      "<h2 style='color:red;text-align:center;margin-top:40px;'>Erro ao abrir painel</h2>"
-    ).getContent();
+    Logger.log("❌ Erro em abrirHomePorTipo: " + err);
+    return `
+      <h2 style="color:red;text-align:center;margin-top:40px">
+        ❌ Erro ao abrir painel<br><small>${err.message}</small>
+      </h2>`;
   }
 }
 
 // ==========================================================
-// 🔍 NEXUS SEARCH — BUSCA UNIFICADA (v3.0 — Estruturas Reais)
+// 🧭 ATRIBUIR RESPONSÁVEL AUTOMATICAMENTE PELO CANAL / ORIGEM
+// ==========================================================
+function atribuirResponsavelAutomatico(f, usuarios) {
+  const origem = (f.origem || "").toLowerCase();
+  const canal = (f.canalComunicacao || "").toLowerCase();
+
+  // Regra 1: Distribuição por origem
+  if (origem.includes("walk")) return "Atendimento Presencial";
+  if (origem.includes("website")) return "Equipe Online";
+  if (origem.includes("email")) return "Atendimento Digital";
+
+  // Regra 2: Distribuição por canal
+  if (canal.includes("whatsapp")) return "Comercial WhatsApp";
+  if (canal.includes("social")) return "Marketing & Social";
+  if (canal.includes("referral")) return "Parcerias e Indicações";
+
+  // Regra 3: fallback automático ao usuário logado
+  const emailAtivo = Session.getActiveUser().getEmail()?.toLowerCase();
+  return usuarios[emailAtivo]?.nome || emailAtivo || "Não atribuído";
+}
+
+
+// ==========================================================
+// 🔍 NEXUS ATLAS — BUSCA UNIFICADA (v7.1 - Compatibilidade JSON)
 // ==========================================================
 function buscarNexus(query) {
   query = query ? query.toString().toLowerCase().trim() : "";
@@ -66,66 +90,179 @@ function buscarNexus(query) {
 
   const termos = query.split(/\s+/);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  const abaVendas = ss.getSheetByName("Client_List");
-  const abaOrcamentos = ss.getSheetByName("ORÇAMENTOS");
-
-  const dadosVendas = abaVendas.getDataRange().getValues();
-  const dadosOrc = abaOrcamentos.getDataRange().getValues();
-
   const resultados = [];
 
-  // ======================================================
-  // 🧾 VENDAS (Client_List)
-  // ======================================================
-  const idxIdVenda = dadosVendas[0].indexOf("SALES_ID");
-  const idxCliente = dadosVendas[0].indexOf("CLIENT NAME");
-  const idxEmpresa = dadosVendas[0].indexOf("BUSINESS NAME");
-  const idxProduto = dadosVendas[0].indexOf("PRODUCT DESCRIPTION");
-  const idxValor = dadosVendas[0].indexOf("AMOUNT");
-  const idxStatus = dadosVendas[0].indexOf("STATUS");
+  // 🧾 VENDAS — ABA "Client_List"
+  const abaVendas = ss.getSheetByName("Client_List");
+  if (abaVendas) {
+    const vendas = abaVendas.getDataRange().getValues();
+    const cab = vendas.shift();
+    const idx = {
+      id: cab.indexOf("SALES_ID"),
+      cliente: cab.indexOf("CLIENT NAME"),
+      empresa: cab.indexOf("BUSINESS NAME"),
+      produto: cab.indexOf("PRODUCT DESCRIPTION"),
+      valor: cab.indexOf("AMOUNT"),
+      status: cab.indexOf("STATUS"),
+      data: cab.indexOf("DATE"),
+    };
 
-  for (let i = 1; i < dadosVendas.length; i++) {
-    const linha = dadosVendas[i];
-    const texto = linha.join(" ").toLowerCase();
-    if (termos.every(t => texto.includes(t))) {
-      resultados.push({
-        tipo: "Venda",
-        id: linha[idxIdVenda] || "",
-        nomeCliente: linha[idxCliente] || linha[idxEmpresa] || "—",
-        produto: linha[idxProduto] || "—",
-        valor: linha[idxValor] || "",
-        status: linha[idxStatus] || ""
-      });
-    }
+    vendas.forEach(l => {
+      const texto = l.join(" ").toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (termos.every(t => texto.includes(
+        t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      ))) {
+        resultados.push({
+          tipo: "Venda",
+          id: l[idx.id] || "",
+          nomeCliente: l[idx.cliente] || l[idx.empresa] || "—",
+          produto: l[idx.produto] || "—",
+          valor: l[idx.valor] || "",
+          status: l[idx.status] || "",
+          dataAbertura: l[idx.data] || "",
+          dataFechamento: l[idx.data] || "",
+        });
+      }
+    });
   }
 
-  // ======================================================
-  // 💬 ORÇAMENTOS
-  // ======================================================
-  const idxIdOrc = dadosOrc[0].indexOf("ID_ORC");
-  const idxClienteOrc = dadosOrc[0].indexOf("CLIENTE_NOME");
-  const idxProdutoOrc = dadosOrc[0].indexOf("PRODUTO_NOME");
-  const idxValorOrc = dadosOrc[0].indexOf("VALOR_ESTIMADO");
-  const idxStatusOrc = dadosOrc[0].indexOf("STATUS");
+  // 💬 ORÇAMENTOS — ABA "ORÇAMENTOS"
+  const abaOrc = ss.getSheetByName("ORÇAMENTOS");
+  if (abaOrc) {
+    const orc = abaOrc.getDataRange().getValues();
+    const cab = orc.shift();
+    const idx = {
+      id: cab.indexOf("ID_ORC"),
+      cliente: cab.indexOf("CLIENTE_NOME"),
+      produto: cab.indexOf("PRODUTO_NOME"),
+      valor: cab.indexOf("VALOR_ESTIMADO"),
+      valorFechado: cab.indexOf("VALOR_FECHADO"),
+      status: cab.indexOf("STATUS"),
+      dataCriacao: cab.indexOf("DATA_CRIACAO"),
+      dataFechamento: cab.indexOf("DATA_FECHAMENTO"),
+    };
 
-  for (let i = 1; i < dadosOrc.length; i++) {
-    const linha = dadosOrc[i];
-    const texto = linha.join(" ").toLowerCase();
-    if (termos.every(t => texto.includes(t))) {
-      resultados.push({
-        tipo: "Orçamento",
-        id: linha[idxIdOrc] || "",
-        nomeCliente: linha[idxClienteOrc] || "—",
-        produto: linha[idxProdutoOrc] || "—",
-        valor: linha[idxValorOrc] || "",
-        status: linha[idxStatusOrc] || ""
-      });
-    }
+    orc.forEach(l => {
+      const texto = l.join(" ").toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (termos.every(t => texto.includes(
+        t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      ))) {
+        resultados.push({
+          tipo: "Orçamento",
+          id: l[idx.id] || "",
+          nomeCliente: l[idx.cliente] || "—",
+          produto: l[idx.produto] || "—",
+          valor: l[idx.valorFechado] || l[idx.valor] || "",
+          status: l[idx.status] || "",
+          dataAbertura: l[idx.dataCriacao] || "",
+          dataFechamento: l[idx.dataFechamento] || "",
+        });
+      }
+    });
   }
 
-  resultados.sort((a, b) => a.nomeCliente.localeCompare(b.nomeCliente));
-  return resultados.slice(0, 50);
+  // 🧮 Ordena por data
+  resultados.sort((a, b) => {
+    const da = new Date(a.dataFechamento || a.dataAbertura);
+    const db = new Date(b.dataFechamento || b.dataAbertura);
+    return db - da;
+  });
+
+  Logger.log("🔍 Resultados encontrados: " + resultados.length);
+  resultados.forEach((r, i) => {
+    Logger.log(`#${i + 1} → ${r.tipo} | ${r.nomeCliente} | ${r.produto} | ${r.valor} | ${r.status}`);
+  });
+
+  // ✅ Retorno compatível com HTML
+  return JSON.parse(JSON.stringify(resultados));
+}
+
+// ==========================================================
+// 🧪 TESTE COMPLETO — NEXUS ATLAS DEBUG (Diagnóstico de Busca)
+// ==========================================================
+function testarBuscarNexus() {
+  const termoTeste = "vinicius"; // 🔍 altere se quiser testar outro nome
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const log = [];
+
+  log.push("=== 🧭 INÍCIO DO TESTE COMPLETO ===");
+
+  // ===============================
+  // 🔹 Diagnóstico da aba Client_List
+  // ===============================
+  const abaVendas = ss.getSheetByName("Client_List");
+  if (!abaVendas) {
+    log.push("❌ Aba 'Client_List' não encontrada.");
+  } else {
+    const vendas = abaVendas.getDataRange().getValues();
+    const cabV = vendas[0];
+    log.push("📄 Cabeçalhos Client_List: " + cabV.join(" | "));
+    log.push("📊 Total de linhas (incluindo cabeçalho): " + vendas.length);
+
+    // Mostra índices importantes
+    const campos = ["SALES_ID","DATE","STATUS","CLIENT NAME","BUSINESS NAME","PRODUCT DESCRIPTION","AMOUNT"];
+    campos.forEach(c => {
+      log.push(`🔸 ${c} → índice ${cabV.indexOf(c)}`);
+    });
+  }
+
+  // ===============================
+  // 🔹 Diagnóstico da aba ORÇAMENTOS
+  // ===============================
+  const abaOrc = ss.getSheetByName("ORÇAMENTOS");
+  if (!abaOrc) {
+    log.push("❌ Aba 'ORÇAMENTOS' não encontrada.");
+  } else {
+    const orc = abaOrc.getDataRange().getValues();
+    const cabO = orc[0];
+    log.push("📄 Cabeçalhos ORÇAMENTOS: " + cabO.join(" | "));
+    log.push("📊 Total de linhas (incluindo cabeçalho): " + orc.length);
+
+    const campos = ["ID_ORC","DATA_CRIACAO","CLIENTE_NOME","PRODUTO_NOME","VALOR_ESTIMADO","VALOR_FECHADO","STATUS","DATA_FECHAMENTO"];
+    campos.forEach(c => {
+      log.push(`🔸 ${c} → índice ${cabO.indexOf(c)}`);
+    });
+  }
+
+  // ===============================
+  // 🔍 Teste de busca real
+  // ===============================
+  try {
+    const resultados = buscarNexus(termoTeste);
+    log.push("=== 🔎 RESULTADOS DO TESTE ===");
+    log.push(`Total encontrados: ${resultados.length}`);
+    resultados.slice(0, 10).forEach((r, i) => {
+      log.push(`#${i + 1} → ${r.tipo} | ${r.nomeCliente} | ${r.produto} | ${r.valor} | ${r.status}`);
+    });
+  } catch (err) {
+    log.push("❌ Erro ao executar buscarNexus(): " + err.message);
+  }
+
+  log.push("=== ✅ FIM DO TESTE ===");
+
+  // Envia tudo pro Logger
+  Logger.log(log.join("\n"));
+}
+
+
+// ==========================================================
+// 🧠 TESTE — Verificar cabeçalhos da planilha
+// ==========================================================
+function testarCabecalhosNexus() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const abaVendas = ss.getSheetByName("Client_List");
+  const abaOrc = ss.getSheetByName("ORÇAMENTOS");
+
+  const cabV = abaVendas.getRange(1, 1, 1, abaVendas.getLastColumn()).getValues()[0];
+  const cabO = abaOrc.getRange(1, 1, 1, abaOrc.getLastColumn()).getValues()[0];
+
+  Logger.log("🔹 Cabeçalhos Client_List:");
+  Logger.log(cabV);
+  Logger.log("🔹 Cabeçalhos ORÇAMENTOS:");
+  Logger.log(cabO);
 }
 
 // ==========================================================
@@ -160,29 +297,36 @@ function validarLogin(email, pin) {
 }
 
 // ============================================================
-// 🧠 Função global — lê a aba USUARIOS e cria o dicionário dinâmico
+// 🧠 Obter Usuários Mapeados — v2.0 (rastreamento dinâmico + imune a acentos)
 // ============================================================
+function normalizarTexto(txt) {
+  return txt
+    ?.toString()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 function obterUsuariosMapeados() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("USUARIOS");
   if (!sheet) throw new Error("Aba 'USUARIOS' não encontrada.");
 
   const data = sheet.getDataRange().getValues();
-  const headers = data.shift(); // Remove o cabeçalho
-  const users = {};
+  const headers = data.shift();
+  const map = Object.fromEntries(headers.map((h, i) => [normalizarTexto(h), i]));
 
+  const users = {};
   data.forEach(row => {
-    const nome = row[0]?.toString().trim();
-    const funcao = row[1]?.toString().trim();
-    const email = row[2]?.toString().trim().toLowerCase();
-    if (email && nome) {
-      users[email] = { nome, funcao };
-    }
+    const nome = row[map[normalizarTexto("NOME")]]?.toString().trim() || "";
+    const funcao = row[map[normalizarTexto("FUNCAO")]]?.toString().trim() || "";
+    const email = row[map[normalizarTexto("EMAIL")]]?.toString().trim().toLowerCase() || "";
+    if (email && nome) users[email] = { nome, funcao };
   });
 
-  return users; // Exemplo: { "fernanda@fdesign.com": { nome: "Fernanda", funcao: "Vendedor" }, ... }
+  return users;
 }
-
 
 // ===============================================================
 // SISTEMA DE REGISTRO E GERENCIAMENTO DE VENDAS
@@ -268,6 +412,19 @@ function normalizarClientList() {
   Logger.log(msg);
   return msg;
 }
+
+// ============================================================
+// 🧠 NORMALIZADOR UNIVERSAL DE TEXTO (ignora caixa e acentos)
+// ============================================================
+function normalizarTexto(txt) {
+  return txt
+    ?.toString()
+    .trim()
+    .normalize("NFD") // remove acentuação
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();   // converte tudo pra minúsculas
+}
+
 
 // ===============================================================
 // 📄 Função: obterAbaComLogs
@@ -2023,218 +2180,209 @@ function obterUsuarioAtual() {
 }
 
 // ===============================================================
-// 💾 REGISTRAR NOVA VENDA — v2.9 (numérico padronizado + autoria garantida)
+// 💰 REGISTRAR NOVA VENDA — v4.1 (rastreamento dinâmico + blindagem)
 // ===============================================================
 function registrarVenda(dados) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const aba = ss.getSheetByName("Client_List");
-    if (!aba) throw new Error("Aba 'Client_List' não encontrada.");
+    const sheet = ss.getSheetByName("Client_List");
+    if (!sheet) throw new Error("Aba 'Client_List' não encontrada.");
 
-    // ============================================================
-    // 👤 Sessão e autoria (com fallback automático)
-    // ============================================================
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const map = Object.fromEntries(headers.map((h, i) => [normalizarTexto(h), i + 1]));
+
     const sessao = obterSessaoAtiva?.() || {};
-    const usuarioAtivo = sessao.nome || sessao.email || Session.getActiveUser().getEmail() || "Sistema";
-    const vendedorId = usuarioAtivo;
-    const criadoPor = usuarioAtivo;
+    const usuarioAtivo =
+      sessao.nome || sessao.email || Session.getActiveUser().getEmail() || "Sistema";
 
-    // ============================================================
-    // 🧾 ID e data
-    // ============================================================
-    const dataAtual = new Date();
-    const timestamp = Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "ddMMyyyyHHmmss");
-    const salesId = `VEN-${timestamp}`;
+    const tz = Session.getScriptTimeZone();
+    const agora = new Date();
+    const dataFormatada = Utilities.formatDate(agora, tz, "MM/dd/yyyy HH:mm:ss");
 
-    // ============================================================
-    // 💰 Cálculos financeiros (padronizados)
-    // ============================================================
-    const parseValor = v => parseFloat(v) || 0; // conversão segura
-    const formatar2 = v => Number(v).toFixed(2); // padroniza 2 casas decimais
+    // 🔢 ID sequencial robusto (busca o último ID válido)
+    const colId = map[normalizarTexto("SALES_ID")];
+    const valores = sheet.getRange(2, colId, Math.max(sheet.getLastRow() - 1, 1)).getValues();
+    let ultimoIdValido = null;
+
+    for (let i = valores.length - 1; i >= 0; i--) {
+      const v = valores[i][0];
+      if (typeof v === "string" && v.startsWith("SALE-")) {
+        ultimoIdValido = v;
+        break;
+      }
+    }
+
+    const lastId = ultimoIdValido || "SALE-000";
+    const nextNumber = parseInt(lastId.replace("SALE-", "")) || 0;
+    const novoId = `SALE-${String(nextNumber + 1).padStart(3, "0")}`;
+
+    // 💸 Cálculos
+    const parseValor = v => parseFloat(v) || 0;
+    const formatar2 = v => Number(v).toFixed(2);
 
     const valorVenda = parseValor(dados.amount);
     const pago = parseValor(dados.paid);
     const saldo = parseValor(dados.balanceDue);
 
-    let percentual = 0;
     const tipo = (dados.type || "").toString().trim().toUpperCase();
+    let percentual = 0;
     if (tipo === "NEW") percentual = 0.10;
     else if (tipo === "OLD") percentual = 0.05;
     else if (tipo === "WALK-IN") percentual = 0.03;
 
     const valorComissao = valorVenda * percentual;
-    const metodoPagamento = dados.payment || "";
-    const status = dados.paymentStatus || "Pending";
-    const anotacoes = dados.notes || "";
 
-    // ============================================================
-    // 🧩 ORDEM EXATA DAS COLUNAS NA ABA CLIENT_LIST
-    // ============================================================
-    const novaLinha = [
-      salesId,                                     // A - SALES_ID
-      dataAtual,                                   // B - DATE
-      tipo,                                        // C - TYPE (forçado uppercase e sem espaços)
-      status,                                      // D - STATUS
-      formatar2(valorComissao),                    // E - COMMISSION VALUE
-      dados.clientName,                            // F - CLIENT NAME
-      dados.businessName,                          // G - BUSINESS NAME
-      "",                                          // H - INVOICE #
-      dados.product,                               // I - PRODUCT DESCRIPTION
-      formatar2(valorVenda),                       // J - AMOUNT
-      formatar2(saldo),                            // K - BALANCE DUE
-      formatar2(pago),                             // L - AMOUNT PAID
-      metodoPagamento,                             // M - PAYMENT METHOD
-      anotacoes,                                   // N - NOTES
-      `${(percentual * 100).toFixed(0)}%`,         // O - % OF SALES
-      vendedorId,                                  // P - SELLER_ID
-      criadoPor                                    // Q - CREATED_BY
-    ];
+    // 🧭 Status automático
+    let status = "Pending";
+    if (saldo <= 0) status = "Paid";
+    else if (saldo < valorVenda) status = "Partial";
 
-    // ============================================================
-    // ✍️ Registro na planilha
-    // ============================================================
-    aba.appendRow(novaLinha);
-
-    Logger.log(`✅ Venda registrada (${salesId}) por ${usuarioAtivo}`);
-    return {
-      success: true,
-      message: `✅ Sale registered successfully (ID: ${salesId}) by ${usuarioAtivo}`
+    // 🧾 Objeto de dados (rastreamento dinâmico)
+    const novaVenda = {
+      [normalizarTexto("SALES_ID")]: novoId,
+      [normalizarTexto("DATE")]: dataFormatada,
+      [normalizarTexto("TYPE")]: tipo,
+      [normalizarTexto("STATUS")]: status,
+      [normalizarTexto("COMMISSION VALUE")]: formatar2(valorComissao),
+      [normalizarTexto("CLIENT NAME")]: dados.clientName || "",
+      [normalizarTexto("BUSINESS NAME")]: dados.businessName || "",
+      [normalizarTexto("INVOICE #")]: "",
+      [normalizarTexto("PRODUCT DESCRIPTION")]: dados.product || "",
+      [normalizarTexto("AMOUNT")]: formatar2(valorVenda),
+      [normalizarTexto("BALANCE DUE")]: formatar2(saldo),
+      [normalizarTexto("AMOUNT PAID")]: formatar2(pago),
+      [normalizarTexto("PAYMENT METHOD")]: dados.payment || "",
+      [normalizarTexto("NOTES")]: dados.notes || "",
+      [normalizarTexto("% OF SALES")]: `${(percentual * 100).toFixed(0)}%`,
+      [normalizarTexto("SELLER_ID")]: usuarioAtivo,
+      [normalizarTexto("CREATED_BY")]: usuarioAtivo,
     };
 
-  } catch (erro) {
-    Logger.log("❌ Erro ao registrar venda: " + erro);
-    return { success: false, message: "Error registering sale: " + erro.message };
+    const novaLinha = headers.map(h => novaVenda[normalizarTexto(h)] || "");
+    sheet.appendRow(novaLinha);
+
+    registrarLogGlobal("Nova Venda", "Client_List", novoId, `${dados.clientName} - ${dados.product}`);
+    Logger.log(`✅ Venda registrada (${novoId}) por ${usuarioAtivo}`);
+
+    return {
+      success: true,
+      id: novoId,
+      status,
+      valor: formatar2(valorVenda),
+      pago: formatar2(pago),
+      saldo: formatar2(saldo),
+      comissao: formatar2(valorComissao),
+      usuario: usuarioAtivo,
+    };
+
+  } catch (err) {
+    Logger.log("❌ Erro ao registrar venda: " + err);
+    throw new Error("Erro ao registrar venda: " + err.message);
   }
 }
 
 // ===============================================================
-// 🧪 TESTE MANUAL — Registrar Venda de Exemplo
+// 💾 SALVAR NOVO ORÇAMENTO — v4.1 (rastreamento + imune a acentos)
 // ===============================================================
-function testeRegistrarVenda() {
-  const dadosTeste = {
-    type: "NEW",                       // tipo da venda
-    clientName: "Cliente Teste Final", // nome do cliente
-    businessName: "F/Design Solutions",// nome da empresa
-    product: "Adesivo de Parede 3x2",  // produto
-    amount: 800,                       // valor total da venda
-    paid: 200,                         // valor pago
-    balanceDue: 600,                   // saldo restante
-    payment: "Cash",                   // método de pagamento
-    paymentStatus: "Half Payment",     // status do pagamento
-    notes: "Teste manual via Apps Script" // observações
-  };
-
-  const resultado = registrarVenda(dadosTeste);
-  Logger.log(resultado);
-}
-
-// ---------------------------------------------------------------
-// 🧾 Registrar Orçamento — grava em ORÇAMENTOS
-// ---------------------------------------------------------------
-function registrarOrcamento(dados) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("ORÇAMENTOS");
-  const id = gerarNovoIDOrcamento(); // função geradora de ID
-  const dataCriacao = new Date();
-
-  const novaLinha = [
-    id,
-    Utilities.formatDate(dataCriacao, Session.getScriptTimeZone(), "MM/dd/yyyy HH:mm:ss"),
-    dados.origem || "Walk-in",
-    dados.criadoPor || Session.getActiveUser().getEmail(),
-    dados.clienteNome || "",
-    dados.clienteEmail || "",
-    dados.clienteTel || "",
-    dados.descricao || "",
-    dados.valorEstimado || 0,
-    "Em Aberto",                // STATUS
-    "", "", "", "", "", "", "", // campos de acompanhamento
-    "", "", "", "",             // fechamentos
-    dados.categoria || "",
-    dados.produto || "",
-    dados.quantidade || "",
-    "", "", "", "", "", "", ""  // demais colunas
-  ];
-
-  sheet.appendRow(novaLinha);
-  return "Orçamento salvo com sucesso!";
-}
-
-
-// ==========================================================
-// 💾 SALVAR NOVO ORÇAMENTO — v2.0 (dinâmica e inteligente)
-// ==========================================================
 function salvarOrcamento(f) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("ORÇAMENTOS");
     if (!sheet) throw new Error("Aba 'ORÇAMENTOS' não encontrada.");
 
-    // ======================================================
-    // 🧠 Carrega automaticamente o mapa de usuários da aba USUARIOS
-    // ======================================================
+    // 🧭 Cabeçalhos mapeados com nomes normalizados
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const map = Object.fromEntries(headers.map((h, i) => [normalizarTexto(h), i + 1]));
+
     const usuarios = obterUsuariosMapeados();
     const emailAtivo = Session.getActiveUser().getEmail()?.toLowerCase();
-    const responsavel = usuarios[emailAtivo]?.nome || emailAtivo || "Desconhecido";
+    const responsavelAuto = atribuirResponsavelAutomatico(f, usuarios);
 
-    // ======================================================
-    // 📅 Gera novo ID sequencial (ex: ORC-004)
-    // ======================================================
+    // 🔢 Geração de ID sequencial
     const lastRow = sheet.getLastRow();
-    const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : "ORC-000";
+    const lastId = lastRow > 1 ? sheet.getRange(lastRow, map[normalizarTexto("ID_ORC")]).getValue() : "ORC-000";
     const nextNumber = parseInt(lastId.replace("ORC-", "")) + 1;
     const newId = `ORC-${String(nextNumber).padStart(3, "0")}`;
 
-    // ======================================================
-    // 🕒 Data e hora formatadas + Follow-up automático (+3 dias)
-    // ======================================================
+    // 📅 Datas automáticas
     const tz = Session.getScriptTimeZone();
-    const dateNow = Utilities.formatDate(new Date(), tz, "MM/dd/yyyy HH:mm:ss");
-
-    const followUpDate = new Date();
-    followUpDate.setDate(followUpDate.getDate() + 3);
+    const now = new Date();
+    const dateNow = Utilities.formatDate(now, tz, "MM/dd/yyyy HH:mm:ss");
+    const followUpDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
     const followUpFormatted = Utilities.formatDate(followUpDate, tz, "MM/dd/yyyy");
 
-    // ======================================================
-    // 💾 Monta a linha completa do orçamento
-    // ======================================================
-    const newRow = [
-      newId,                        // ID_ORC
-      dateNow,                      // DATA_CRIACAO
-      f.origem || "Walk-in",        // ORIGEM
-      emailAtivo,                   // CRIADO_POR_ID (email)
-      f.clienteNome || "",          // CLIENTE_NOME
-      f.clienteEmail || "",         // CLIENTE_EMAIL
-      f.clienteTel || "",           // CLIENTE_TEL
-      f.descricao || "",            // DESCRICAO
-      f.valorEstimado || "",        // VALOR_ESTIMADO
-      "Em Aberto",                  // STATUS
-      "", "", "", "", "", "", "",   // CAMPOS DE CONTROLE (vazios inicialmente)
-      "", "", "",                   // CAMPOS DE VALOR / DATA FECHAMENTO
-      f.produtoCategoria || "",     // PRODUTO_CATEGORIA
-      f.produtoNome || "",          // PRODUTO_NOME
-      f.quantidade || "",           // QUANTIDADE
-      "",                           // MARGEM_ESTIMADA
-      f.canalComunicacao || "",     // CANAL_COMUNICACAO
-      followUpFormatted,            // FOLLOW_UP_NEXT
-      responsavel,                  // RESPONSAVEL_ATUAL (nome do vendedor)
-      "", "",                       // CONVERTIDO_PARA / ARQUIVADO
-    ];
+    // 🧭 Status inteligente
+    const origem = (f.origem || "").toLowerCase();
+    const canal = (f.canalComunicacao || "").toLowerCase();
+    let status = "Em Aberto";
+    if (origem.includes("website") || canal.includes("social")) status = "Em Análise";
+    else if (origem.includes("walk")) status = "Aguardando Retorno";
+    else if (canal.includes("whatsapp") || canal.includes("referral")) status = "Em Negociação";
 
-    // ======================================================
-    // 📥 Insere na planilha
-    // ======================================================
-    sheet.appendRow(newRow);
-
-    // ======================================================
-    // ✅ Retorna dados úteis ao front-end
-    // ======================================================
-    return {
-      id: newId,
-      responsavel,
-      followUp: followUpFormatted,
-      status: "success"
+    // 🧾 Objeto de dados (usando nomes normalizados das colunas)
+    const dadosNovo = {
+      [normalizarTexto("ID_ORC")]: newId,
+      [normalizarTexto("DATA_CRIACAO")]: dateNow,
+      [normalizarTexto("ORIGEM")]: f.origem || "Walk-in",
+      [normalizarTexto("CRIADO_POR_ID")]: emailAtivo,
+      [normalizarTexto("CLIENTE_NOME")]: f.clienteNome || "",
+      [normalizarTexto("CLIENTE_EMAIL")]: f.clienteEmail || "",
+      [normalizarTexto("CLIENTE_TEL")]: f.clienteTel || "",
+      [normalizarTexto("DESCRICAO")]: f.descricao || "",
+      [normalizarTexto("VALOR_ESTIMADO")]: f.valorEstimado || "",
+      [normalizarTexto("STATUS")]: status,
+      [normalizarTexto("PRODUTO_CATEGORIA")]: f.produtoCategoria || "",
+      [normalizarTexto("PRODUTO_NOME")]: f.produtoNome || "",
+      [normalizarTexto("QUANTIDADE")]: f.quantidade || "",
+      [normalizarTexto("CANAL_COMUNICACAO")]: f.canalComunicacao || "",
+      [normalizarTexto("FOLLOW_UP_NEXT")]: followUpFormatted,
+      [normalizarTexto("RESPONSAVEL_ATUAL")]: responsavelAuto,
+      [normalizarTexto("OBS_INTERNAL")]:
+        `[${Utilities.formatDate(now, tz, "MM/dd/yyyy HH:mm")}] Criado por ${responsavelAuto}`,
+      [normalizarTexto("CONVERTIDO_PARA")]: "",
+      [normalizarTexto("ARQUIVADO")]: ""
     };
+
+    // 🔄 Cria linha alinhada automaticamente
+    const linhaFinal = headers.map(h => dadosNovo[normalizarTexto(h)] || "");
+    sheet.appendRow(linhaFinal);
+
+    // 🗃️ Log global
+    registrarLogGlobal("Novo Orçamento", "ORÇAMENTOS", newId, `${f.clienteNome} - ${f.produtoNome}`);
+
+    // ⚠️ Verificação de duplicidade de cliente
+    try {
+      const dados = sheet.getDataRange().getValues();
+      const colEmail = map[normalizarTexto("CLIENTE_EMAIL")] - 1;
+      const colTel = map[normalizarTexto("CLIENTE_TEL")] - 1;
+      const colObs = map[normalizarTexto("OBS_INTERNAL")] - 1;
+      const colId = map[normalizarTexto("ID_ORC")] - 1;
+
+      const emailNovo = (f.clienteEmail || "").toLowerCase().trim();
+      const telNovo = (f.clienteTel || "").replace(/\D/g, "");
+      let duplicado = null;
+
+      for (let i = 1; i < dados.length - 1; i++) {
+        const emailExistente = (dados[i][colEmail] || "").toLowerCase().trim();
+        const telExistente = (dados[i][colTel] || "").replace(/\D/g, "");
+        if ((emailExistente && emailExistente === emailNovo) || (telExistente && telExistente === telNovo)) {
+          duplicado = dados[i][colId];
+          break;
+        }
+      }
+
+      if (duplicado) {
+        const linhaInserida = sheet.getLastRow();
+        const celulaObs = sheet.getRange(linhaInserida, map[normalizarTexto("OBS_INTERNAL")]);
+        const anterior = celulaObs.getValue();
+        const aviso = `⚠️ Cliente já possui orçamento anterior (${duplicado})`;
+        celulaObs.setValue(anterior ? anterior + "\n" + aviso : aviso);
+      }
+    } catch (errDup) {
+      Logger.log("⚠️ Erro ao verificar duplicidade: " + errDup);
+    }
+
+    return { id: newId, responsavel: responsavelAuto, followUp: followUpFormatted, status, success: true };
 
   } catch (err) {
     Logger.log("❌ Erro em salvarOrcamento: " + err);
@@ -2242,151 +2390,23 @@ function salvarOrcamento(f) {
   }
 }
 
-
 // ==========================================================
-// 🧠 MAPEAMENTO DINÂMICO DE USUÁRIOS (Aba: USUARIOS)
+// 🗃️ REGISTRA LOG GLOBAL DE AÇÕES (ABA LOGS)
 // ==========================================================
-function obterUsuariosMapeados() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("USUARIOS");
-  if (!sheet) throw new Error("Aba 'USUARIOS' não encontrada.");
-
-  const data = sheet.getDataRange().getValues();
-  data.shift(); // Remove cabeçalho
-
-  const usuarios = {};
-  data.forEach(row => {
-    const nome = row[0]?.toString().trim();
-    const funcao = row[1]?.toString().trim();
-    const email = row[2]?.toString().trim().toLowerCase();
-    if (email && nome) usuarios[email] = { nome, funcao };
-  });
-
-  return usuarios;
-}
-
-// ==========================================================
-// 🔄 CONVERTER ORÇAMENTO EM VENDA — v1.0
-// ==========================================================
-function converterOrcamentoEmVenda(idOrcamento) {
+function registrarLogGlobal(acao, entidade, id, detalhes = "") {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetOrc = ss.getSheetByName("ORÇAMENTOS");
-    const sheetVen = ss.getSheetByName("CLIENT_LIST");
-    if (!sheetOrc) throw new Error("Aba 'ORÇAMENTOS' não encontrada.");
-    if (!sheetVen) throw new Error("Aba 'CLIENT_LIST' não encontrada.");
+    const sheet = ss.getSheetByName("LOGS") || ss.insertSheet("LOGS");
 
-    // ======================================================
-    // 🔎 Localiza o orçamento pelo ID
-    // ======================================================
-    const data = sheetOrc.getDataRange().getValues();
-    const headers = data[0];
-    const idIndex = headers.indexOf("ID_ORC");
-    if (idIndex === -1) throw new Error("Coluna 'ID_ORC' não encontrada.");
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(["DATA", "USUÁRIO", "AÇÃO", "ENTIDADE", "ID", "DETALHES"]);
+    }
 
-    const rowIndex = data.findIndex(r => r[idIndex] === idOrcamento);
-    if (rowIndex === -1) throw new Error(`Orçamento ${idOrcamento} não encontrado.`);
-
-    // Dados da linha (lembrando que findIndex retorna índice da matriz, não da planilha)
-    const orcRow = data[rowIndex];
-
-    // ======================================================
-    // 📆 Calcula tempo de fechamento
-    // ======================================================
-    const tz = Session.getScriptTimeZone();
-    const dataCriacaoStr = orcRow[1]; // DATA_CRIACAO
-    const dataCriacao = new Date(dataCriacaoStr);
-    const dataFechamento = new Date();
-    const tempoFechamento = Math.ceil((dataFechamento - dataCriacao) / (1000 * 60 * 60 * 24));
-    const dataFechamentoFmt = Utilities.formatDate(dataFechamento, tz, "MM/dd/yyyy HH:mm:ss");
-
-    // ======================================================
-    // 💾 Gera novo ID de venda (VEN-###)
-    // ======================================================
-    const lastRowVen = sheetVen.getLastRow();
-    const lastVenId = lastRowVen > 1 ? sheetVen.getRange(lastRowVen, 1).getValue() : "VEN-000";
-    const nextVenNumber = parseInt(lastVenId.replace("VEN-", "")) + 1;
-    const newVenId = `VEN-${String(nextVenNumber).padStart(3, "0")}`;
-
-    // ======================================================
-    // 🧠 Identifica vendedor / responsável
-    // ======================================================
-    const usuarios = obterUsuariosMapeados();
-    const emailAtivo = Session.getActiveUser().getEmail()?.toLowerCase();
-    const responsavel = usuarios[emailAtivo]?.nome || emailAtivo || "Desconhecido";
-
-    // ======================================================
-    // 💰 Extrai informações do orçamento
-    // ======================================================
-    const clienteNome = orcRow[4];
-    const clienteEmail = orcRow[5];
-    const clienteTel = orcRow[6];
-    const descricao = orcRow[7];
-    const valorEstimado = parseFloat((orcRow[8] || "0").toString().replace(/[^\d.-]/g, ""));
-    const produtoCategoria = orcRow[21];
-    const produtoNome = orcRow[22];
-    const quantidade = orcRow[23];
-    const canal = orcRow[25];
-    const origem = orcRow[2];
-
-    // ======================================================
-    // 🧾 Cria linha da venda (CLIENT_LIST)
-    // ======================================================
-    const newSale = [
-      newVenId,                                      // SALES_ID
-      Utilities.formatDate(new Date(), tz, "MM/dd/yyyy HH:mm:ss"), // DATE
-      origem || "Converted",                         // TYPE
-      "Full Payment",                                // STATUS (ajustável depois)
-      "",                                            // COMMISSION VALUE
-      clienteNome || "",                             // CLIENT NAME
-      "",                                            // BUSINESS NAME
-      "",                                            // INVOICE #
-      `${produtoCategoria} — ${produtoNome}`,        // PRODUCT DESCRIPTION
-      valorEstimado || "",                           // AMOUNT
-      0,                                             // BALANCE DUE
-      valorEstimado || "",                           // AMOUNT PAID
-      "To Define",                                   // PAYMENT METHOD
-      descricao || "",                               // NOTES
-      "10%",                                         // % OF SALES (padrão inicial)
-      emailAtivo,                                    // SELLER_ID
-      emailAtivo                                     // CREATED_BY
-    ];
-
-    // ======================================================
-    // 📥 Insere a nova venda
-    // ======================================================
-    sheetVen.appendRow(newSale);
-
-    // ======================================================
-    // 🔁 Atualiza o orçamento original
-    // ======================================================
-    const colStatus = headers.indexOf("STATUS") + 1;
-    const colValorFechado = headers.indexOf("VALOR_FECHADO") + 1;
-    const colDataFechamento = headers.indexOf("DATA_FECHAMENTO") + 1;
-    const colTempoFechamento = headers.indexOf("TEMPO_FECHAMENTO_DIAS") + 1;
-    const colConvertidoPara = headers.indexOf("CONVERTIDO_PARA") + 1;
-
-    if (colStatus > 0) sheetOrc.getRange(rowIndex + 1, colStatus).setValue("Convertido");
-    if (colValorFechado > 0) sheetOrc.getRange(rowIndex + 1, colValorFechado).setValue(valorEstimado);
-    if (colDataFechamento > 0) sheetOrc.getRange(rowIndex + 1, colDataFechamento).setValue(dataFechamentoFmt);
-    if (colTempoFechamento > 0) sheetOrc.getRange(rowIndex + 1, colTempoFechamento).setValue(tempoFechamento);
-    if (colConvertidoPara > 0) sheetOrc.getRange(rowIndex + 1, colConvertidoPara).setValue(newVenId);
-
-    // ======================================================
-    // ✅ Retorno pro front-end
-    // ======================================================
-    return {
-      status: "success",
-      idVenda: newVenId,
-      idOrcamento: idOrcamento,
-      cliente: clienteNome,
-      valor: valorEstimado,
-      tempoFechamento
-    };
-
-  } catch (err) {
-    Logger.log("❌ Erro em converterOrcamentoEmVenda: " + err);
-    throw new Error("Erro ao converter orçamento: " + err.message);
+    const usuario = Session.getActiveUser().getEmail() || "Sistema";
+    const agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM/dd/yyyy HH:mm:ss");
+    sheet.appendRow([agora, usuario, acao, entidade, id, detalhes]);
+  } catch (e) {
+    Logger.log("⚠️ Erro ao registrar log global: " + e);
   }
 }
 
@@ -2508,41 +2528,107 @@ function registrarPagamento(id, valor, metodo) {
   return { success: false, message: "Venda não encontrada." };
 }
 
-// ---------------------------------------------------------------
-// 🔁 Converter Orçamento em Venda
-// ---------------------------------------------------------------
-function converterOrcamentoParaVenda(id) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const shOrc = ss.getSheetByName("ORÇAMENTOS");
-  const shVend = ss.getSheetByName("Client_List");
-  const dados = shOrc.getDataRange().getValues();
+// ===============================================================
+// 🔁 CONVERTER ORÇAMENTO EM VENDA — v4.0 (rastreamento por cabeçalho)
+// ===============================================================
+function converterOrcamentoParaVenda(idOrcamento) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const shOrc = ss.getSheetByName("ORÇAMENTOS");
+    const shVend = ss.getSheetByName("Client_List");
 
-  for (let i = 1; i < dados.length; i++) {
-    if (dados[i][0] === id) {
-      const linha = dados[i];
-      const vendedor = obterUsuarioAtual();
-      const novaVenda = [
-        gerarIdUnico("VEN"),
-        new Date(),
-        vendedor,
-        linha[3], // cliente
-        linha[4], // empresa
-        linha[5], // produto
-        linha[6], // valor
-        "Pending",
-        0,
-        "",
-        "",
-        `Converted from ${id} by ${vendedor} — ${new Date().toLocaleString()}`
-      ];
-      shVend.appendRow(novaVenda);
+    if (!shOrc) throw new Error("Aba 'ORÇAMENTOS' não encontrada.");
+    if (!shVend) throw new Error("Aba 'Client_List' não encontrada.");
 
-      // Atualiza status do orçamento original
-      shOrc.getRange(i + 1, 8).setValue("Converted to Sale");
-      return { success: true, idVenda: novaVenda[0] };
+    // 🧭 Mapa de cabeçalhos
+    const headersOrc = shOrc.getRange(1, 1, 1, shOrc.getLastColumn()).getValues()[0];
+    const mapOrc = Object.fromEntries(
+      headersOrc.map((h, i) => [normalizarTexto(h), i])
+    );
+
+    const headersVend = shVend.getRange(1, 1, 1, shVend.getLastColumn()).getValues()[0];
+    const mapVend = Object.fromEntries(
+      headersVend.map((h, i) => [normalizarTexto(h), i + 1])
+    );
+
+
+    const dadosOrc = shOrc.getDataRange().getValues();
+    const linhaIndex = dadosOrc.findIndex((r, i) => i > 0 && r[mapOrc["ID_ORC"]] === idOrcamento);
+
+    if (linhaIndex === -1) {
+      return { success: false, message: "Orçamento não encontrado." };
     }
+
+    const linha = dadosOrc[linhaIndex];
+    const tz = Session.getScriptTimeZone();
+    const agora = new Date();
+    const dataFormatada = Utilities.formatDate(agora, tz, "MM/dd/yyyy HH:mm:ss");
+
+    // 🧠 Usuário ativo
+    const sessao = obterSessaoAtiva?.() || {};
+    const usuarioAtivo = sessao.nome || sessao.email || Session.getActiveUser().getEmail() || "Sistema";
+
+    // 💸 Dados do orçamento original
+    const valorEstimado = parseFloat(linha[mapOrc["VALOR_ESTIMADO"]]) || 0;
+    const produtoNome = linha[mapOrc["PRODUTO_NOME"]] || "";
+    const clienteNome = linha[mapOrc["CLIENTE_NOME"]] || "";
+    const clienteEmpresa = linha[mapOrc["CLIENTE_EMAIL"]] || "";
+    const descricao = linha[mapOrc["DESCRICAO"]] || "";
+    const canal = linha[mapOrc["CANAL_COMUNICACAO"]] || "";
+    const tipo = "Converted";
+
+    // 🔢 Geração de ID de venda
+    const lastRow = shVend.getLastRow();
+    const lastId = lastRow > 1 ? shVend.getRange(lastRow, mapVend["SALES_ID"]).getValue() : "SALE-000";
+    const nextNumber = parseInt(lastId.replace("SALE-", "")) + 1;
+    const novoId = `SALE-${String(nextNumber).padStart(3, "0")}`;
+
+    // 💰 Montagem de nova venda
+    const novaVenda = {
+      "SALES_ID": novoId,
+      "DATE": dataFormatada,
+      "TYPE": tipo,
+      "STATUS": "Pending",
+      "COMMISSION VALUE": "",
+      "CLIENT NAME": clienteNome,
+      "BUSINESS NAME": clienteEmpresa,
+      "INVOICE #": "",
+      "PRODUCT DESCRIPTION": `${produtoNome} — ${descricao}`,
+      "AMOUNT": valorEstimado.toFixed(2),
+      "BALANCE DUE": valorEstimado.toFixed(2),
+      "AMOUNT PAID": "0.00",
+      "PAYMENT METHOD": canal || "Undefined",
+      "NOTES": `Converted from ${idOrcamento} by ${usuarioAtivo} — ${dataFormatada}`,
+      "% OF SALES ": "",
+      "SELLER_ID": usuarioAtivo,
+      "CREATED_BY": usuarioAtivo
+    };
+
+    // 🔄 Gera linha alinhada com cabeçalho
+    const novaLinha = headersVend.map(h => novaVenda[h.trim()] || "");
+    shVend.appendRow(novaLinha);
+
+    // 🏷️ Atualiza status do orçamento original
+    const colStatus = mapOrc["STATUS"] + 1;
+    const colConvertido = mapOrc["CONVERTIDO_PARA"] + 1;
+    const colObs = mapOrc["OBS_INTERNAL"] + 1;
+
+    const obsAnterior = linha[mapOrc["OBS_INTERNAL"]] || "";
+    const novaObs = `${obsAnterior}\n[${dataFormatada}] Orçamento convertido em venda ${novoId} por ${usuarioAtivo}`;
+
+    shOrc.getRange(linhaIndex + 1, colStatus).setValue("Convertido em Venda");
+    shOrc.getRange(linhaIndex + 1, colConvertido).setValue(novoId);
+    shOrc.getRange(linhaIndex + 1, colObs).setValue(novaObs);
+
+    // 🗃️ Log global
+    registrarLogGlobal("Conversão", "ORÇAMENTOS → CLIENT_LIST", novoId, `${clienteNome} - ${produtoNome}`);
+
+    return { success: true, idVenda: novoId };
+
+  } catch (err) {
+    Logger.log("❌ Erro em converterOrcamentoParaVenda: " + err);
+    return { success: false, message: "Erro na conversão: " + err.message };
   }
-  return { success: false, message: "Orçamento não encontrado." };
 }
 
 // ===============================================================
@@ -2719,4 +2805,3 @@ function atualizarEstruturaVendas() {
 function keepAlive() {
   return true;
 }
-

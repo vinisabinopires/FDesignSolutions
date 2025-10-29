@@ -291,6 +291,23 @@ Minimal Structured + Glassmorphism Edition (Consolidated)
   transform: translateY(0);
 }
 
+.saving-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top: 2px solid #fbbc04;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 </style>
 
 <!-- ==========================================================
@@ -367,16 +384,47 @@ function showModal() {
 
 function closeModal() { document.getElementById("confirmModal").classList.add("hidden"); }
 
+let isSavingSale = false; // 🔒 trava global
+
 function confirmSale() {
+  if (isSavingSale) return; // 🚫 evita reentradas
+  isSavingSale = true;
+
+  const confirmBtn = document.querySelector("#confirmModal .btn-primary");
+  const cancelBtn = document.querySelector("#confirmModal .btn-secondary");
+
+  // 🎬 Estado visual de carregamento
+  confirmBtn.disabled = true;
+  cancelBtn.disabled = true;
+  confirmBtn.innerHTML = `
+    <div class="saving-spinner"></div>
+    <span>Registering sale...</span>
+  `;
+
+  // 🚀 Chamada backend
   google.script.run
     .withSuccessHandler(() => {
       showToast("✅ Sale registered successfully!", "success");
       closeModal();
       document.getElementById("saleForm").reset();
       document.getElementById("depositField").style.display = "none";
+      restoreConfirmButton();
+      isSavingSale = false;
     })
-    .withFailureHandler(err => showToast("❌ Error: " + err.message, "error"))
+    .withFailureHandler(err => {
+      showToast("❌ Error: " + err.message, "error");
+      restoreConfirmButton();
+      isSavingSale = false;
+    })
     .registrarVenda(formData);
+}
+
+function restoreConfirmButton() {
+  const confirmBtn = document.querySelector("#confirmModal .btn-primary");
+  const cancelBtn = document.querySelector("#confirmModal .btn-secondary");
+  confirmBtn.disabled = false;
+  cancelBtn.disabled = false;
+  confirmBtn.innerHTML = "Confirm & Register";
 }
 
 function voltarMenu() {
