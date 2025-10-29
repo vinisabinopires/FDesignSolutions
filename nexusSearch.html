@@ -1,12 +1,13 @@
 <!-- ==========================================================
-💠 F/DESIGN SOLUTIONS — NEXUS SEARCH (Dark Glass v3 - Final)
+💠 F/DESIGN SOLUTIONS — NEXUS ATLAS v5.3 (Glass Core Stability)
 ========================================================== -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Nexus Search</title>
+<title>Nexus Atlas</title>
+
 <style>
   body {
     margin: 0;
@@ -14,17 +15,21 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at top, #0a0a1a 0%, #000 100%);
     font-family: 'Poppins', sans-serif;
     color: #fff;
+    background: radial-gradient(circle at top, #0d1b2a 0%, #000814 100%);
     overflow: hidden;
   }
 
   header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 35px;
     position: absolute;
-    top: 25px;
-    left: 30px;
+    top: 0;
+    left: 0;
   }
 
   .back-btn {
@@ -35,103 +40,176 @@
     border-radius: 10px;
     padding: 10px 16px;
     cursor: pointer;
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
     transition: all .3s ease;
   }
+  .back-btn:hover { background: rgba(255,255,255,0.2); }
 
-  .back-btn:hover {
-    background: rgba(241,196,15,0.25);
-  }
-
-  h1 {
-    font-size: 6rem;
+  .logo {
+    font-size: 1.4rem;
     font-weight: 700;
-    letter-spacing: -2px;
     background: linear-gradient(90deg, #fff 10%, #f1c40f 80%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 40px rgba(241,196,15,0.3);
-    margin-bottom: 50px;
+    text-shadow: 0 0 20px rgba(241,196,15,0.3);
     user-select: none;
   }
 
+  /* SEARCH BOX */
   .search-box {
     width: 600px;
-    height: 65px;
+    height: 60px;
     border-radius: 40px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255,255,255,0.08);
     box-shadow: 0 0 25px rgba(0,0,0,0.4);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
     display: flex;
     align-items: center;
     padding: 0 25px;
     transition: all 0.3s ease;
+    margin-top: 120px;
   }
-
   .search-box:focus-within {
-    box-shadow: 0 0 30px rgba(241,196,15,0.3);
+    box-shadow: 0 0 30px rgba(241,196,15,0.4);
     transform: scale(1.02);
   }
-
   input {
     flex: 1;
     height: 100%;
     border: none;
     outline: none;
     background: transparent;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     color: #fff;
     caret-color: #f1c40f;
   }
+  input::placeholder { color: rgba(255,255,255,0.55); }
 
-  input::placeholder {
-    color: rgba(255,255,255,0.5);
-  }
-
-  .results-container {
-    margin-top: 50px;
-    width: 80%;
-    max-width: 900px;
+  /* FILTER BAR */
+  .filter-bar {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
-    overflow-y: auto;
-    max-height: 55vh;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0 10px 0;
+    flex-wrap: wrap;
   }
 
-  .result-card {
-    background: rgba(255,255,255,0.07);
-    border-radius: 16px;
-    padding: 20px 30px;
-    backdrop-filter: blur(8px);
-    transition: .3s;
+  .filter-btn {
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    border-radius: 25px;
+    padding: 8px 18px;
     cursor: pointer;
+    font-size: 0.9rem;
+    backdrop-filter: blur(8px);
+    transition: all .3s ease;
+  }
+  .filter-btn:hover { background: rgba(255,255,255,0.1); }
+  .filter-btn.active {
+    background: rgba(241,196,15,0.25);
+    border-color: #f1c40f;
+    color: #f1c40f;
+    box-shadow: 0 0 8px rgba(241,196,15,0.4);
+  }
+
+  .clear-btn {
+    border: none;
+    background: transparent;
+    color: #f1c40f;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding-left: 10px;
+    display: none;
+    transition: all .3s ease;
+  }
+  .clear-btn:hover { color: #fff; text-shadow: 0 0 8px #f1c40f; }
+
+  /* DATE PICKER */
+  .date-picker {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.08);
+    padding: 15px 20px;
+    border-radius: 14px;
+    backdrop-filter: blur(10px);
+  }
+  .date-picker input[type="date"] {
+    width: 160px;
+    text-align: center;
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .date-picker input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+  }
+
+  /* RESULTS GRID */
+  #nexusResults {
+    width: 90%;
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+    padding-bottom: 20px;
+    overflow-y: auto;
+    max-height: 60vh;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 15px;
+    padding: 15px 20px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    transition: all .3s ease;
+    cursor: pointer;
+  }
+  .card:hover { background: rgba(255,255,255,0.08); }
+
+  .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-weight: 600;
+    margin-bottom: 6px;
   }
 
-  .result-card:hover {
-    background: rgba(255,255,255,0.15);
-    transform: translateY(-2px);
-  }
-
-  .result-title { font-weight: 600; font-size: 1.1rem; }
-  .result-subtext { font-size: 0.9rem; opacity: 0.8; }
-
-  .result-type {
-    font-size: 0.85rem;
-    padding: 6px 14px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.1);
-    color: #f1c40f;
-    text-transform: uppercase;
+  .tag {
+    font-size: 0.75rem;
+    border-radius: 8px;
+    padding: 3px 8px;
+    color: #000;
     font-weight: 600;
   }
+  .tag.venda { background: #2ecc71; }
+  .tag.orcamento { background: #f1c40f; }
+
+  .info-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+  }
+
+  .card p { margin: 3px 0; font-size: 0.9rem; color: #ccc; }
+  .price { color: #00ffb3; font-weight: 600; }
+  .status { color: #f1c40f; font-size: 0.85rem; }
+  .date-info { color: #9eb0c9; font-size: 0.8rem; }
 
   @media(max-width:700px){
-    h1{font-size:3.5rem;}
-    .search-box{width:85%;}
+    .search-box{width:90%;}
+    .filter-bar{flex-wrap:wrap;}
   }
 </style>
 </head>
@@ -139,87 +217,158 @@
 <body>
   <header>
     <button class="back-btn" onclick="voltarMenu()">⬅ Menu</button>
+    <div class="logo">nexus atlas</div>
   </header>
 
-  <h1>nexus</h1>
-
-  <!-- Campo de busca -->
   <div class="search-box">
-    <input 
-      id="searchInput" 
-      type="text"
-      placeholder="Buscar por cliente, telefone, email ou produto..."
-      oninput="buscarNexus()" />
+    <input id="nexusInput" type="text" placeholder="Buscar por cliente, telefone, email ou produto..." />
   </div>
 
-  <!-- Resultados -->
-  <div id="results" class="results-container"></div>
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filtrarTempo('todos')">Todos</button>
+    <button class="filter-btn" onclick="filtrarTempo('7dias')">⏱ Últimos 7 dias</button>
+    <button class="filter-btn" onclick="filtrarTempo('mes')">🗓 Este mês</button>
+    <button class="filter-btn" onclick="togglePersonalizado()">📆 Personalizado</button>
+    <button id="clearBtn" class="clear-btn" onclick="limparFiltros()">❌ Limpar filtros</button>
+  </div>
 
-  <script>
-    // 🔧 Corrige o bloqueio de foco automático (Chrome security)
-    window.addEventListener("load", () => {
-      setTimeout(() => {
-        const input = document.getElementById("searchInput");
-        if (input) input.focus();
-      }, 400);
-    });
+  <div class="date-picker" id="datePicker">
+    <div>
+      <input type="date" id="dataInicio">
+      —
+      <input type="date" id="dataFim">
+    </div>
+    <button class="filter-btn active" onclick="aplicarFiltroPersonalizado()">Aplicar</button>
+  </div>
 
-    // 🔄 Mantém sessão ativa
-    setInterval(() => { google.script.run.keepAlive(); }, 1000 * 60 * 3);
+  <div id="nexusResults"></div>
 
-    let timeout = null;
+<script>
+(() => {
+  const input = document.getElementById("nexusInput");
+  const resultsBox = document.getElementById("nexusResults");
+  const picker = document.getElementById("datePicker");
+  const clearBtn = document.getElementById("clearBtn");
+  const inicioInput = document.getElementById("dataInicio");
+  const fimInput = document.getElementById("dataFim");
 
-    function buscarNexus() {
-      const q = document.getElementById("searchInput").value.trim();
-      clearTimeout(timeout);
-      if (!q) {
-        document.getElementById("results").innerHTML = "";
-        return;
-      }
+  let timeout;
+  let filtroTempo = 'todos';
+  let dataInicio = null, dataFim = null;
+  let resultadosOriginais = [];
 
-      timeout = setTimeout(() => {
-        google.script.run.withSuccessHandler(renderResults).buscarNexus(q);
-      }, 400);
-    }
+  input.addEventListener("input", () => {
+    clearTimeout(timeout);
+    const query = input.value.trim();
+    if (query.length < 2) { resultsBox.innerHTML = ""; return; }
+    resultsBox.innerHTML = "<p>Carregando...</p>";
+    timeout = setTimeout(() => {
+      google.script.run.withSuccessHandler(res => {
+        resultadosOriginais = res || [];
+        aplicarFiltro();
+      }).buscarNexus(query);
+    }, 300);
+  });
 
-    function renderResults(data) {
-      const c = document.getElementById("results");
-      c.innerHTML = "";
-      if (!data || data.length === 0) {
-        c.innerHTML = "<p style='opacity:0.6;'>Nenhum resultado encontrado.</p>";
-        return;
-      }
-
-      data.forEach(item => {
-        const d = document.createElement("div");
-        d.className = "result-card";
-        d.innerHTML = `
-          <div>
-            <div class='result-title'>${item.nomeCliente || item.produto}</div>
-            <div class='result-subtext'>${item.telefone || item.email || ""}</div>
-          </div>
-          <div class='result-type'>${item.tipo}</div>
-        `;
-        d.onclick = () => abrirItem(item);
-        c.appendChild(d);
+  function aplicarFiltro() {
+    let filtrados = [...resultadosOriginais];
+    if (filtroTempo !== 'todos') {
+      filtrados = filtrados.filter(r => {
+        const d = new Date(r.dataFechamento || r.dataAbertura);
+        if (filtroTempo === '7dias') {
+          const limite = new Date(); limite.setDate(limite.getDate() - 7);
+          return d >= limite;
+        }
+        if (filtroTempo === 'mes') {
+          const agora = new Date();
+          return d.getMonth() === agora.getMonth() && d.getFullYear() === agora.getFullYear();
+        }
+        if (filtroTempo === 'personalizado' && dataInicio && dataFim) {
+          return d >= dataInicio && d <= dataFim;
+        }
+        return true;
       });
     }
 
-    function abrirItem(item) {
-      if (item.tipo === "Venda") {
-        google.script.run.abrirFormVendas(item.id);
-      } else if (item.tipo === "Orçamento") {
-        google.script.run.abrirFormQuote(item.id);
-      }
-    }
+    resultsBox.innerHTML = filtrados.map(r => `
+      <div class="card" onclick="abrirItem('${r.tipo}', '${r.id}')">
+        <div class="card-header">
+          ${r.nomeCliente || "Cliente indefinido"}
+          <span class="tag ${r.tipo === 'Venda' ? 'venda' : 'orcamento'}">${r.tipo}</span>
+        </div>
+        <p>${r.produto || "Produto não especificado"}</p>
+        <div class="info-line">
+          <span class="price">${r.valor ? "$"+r.valor : ""}</span>
+          <span class="date-info">${formatarDatas(r)}</span>
+        </div>
+        <p class="status">${r.status || ""}</p>
+      </div>
+    `).join("");
+  }
 
-    function voltarMenu() {
-  google.script.run.withSuccessHandler(html => {
-    document.open();
-    document.write(html);
-    document.close();
-  }).abrirHomeVendedor_WEB(); // ✅ versão sem getUi()
-}
-  </script>
+  function formatarDatas(r) {
+    const format = d => {
+      const date = new Date(d);
+      return `${String(date.getDate()).padStart(2,"0")}/${String(date.getMonth()+1).padStart(2,"0")}/${date.getFullYear()}`;
+    };
+    if (r.dataAbertura && r.dataFechamento) return `${format(r.dataAbertura)} → ${format(r.dataFechamento)}`;
+    if (r.dataAbertura && !r.dataFechamento)
+      return r.tipo === "Orçamento" ? `Enviado em ${format(r.dataAbertura)}` : `Criado em ${format(r.dataAbertura)}`;
+    return "";
+  }
+
+  window.filtrarTempo = tipo => {
+    filtroTempo = tipo;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[onclick="filtrarTempo('${tipo}')"]`).classList.add('active');
+    picker.style.display = 'none';
+    toggleClearBtn();
+    aplicarFiltro();
+  };
+
+  window.togglePersonalizado = () => {
+    picker.style.display = picker.style.display === 'flex' ? 'none' : 'flex';
+  };
+
+  window.aplicarFiltroPersonalizado = () => {
+    if (!inicioInput.value || !fimInput.value) return alert('Selecione as duas datas.');
+    dataInicio = new Date(inicioInput.value);
+    dataFim = new Date(fimInput.value);
+    filtroTempo = 'personalizado';
+    picker.style.display = 'none';
+    toggleClearBtn();
+    aplicarFiltro();
+  };
+
+  window.limparFiltros = () => {
+    filtroTempo = 'todos';
+    dataInicio = dataFim = null;
+    inicioInput.value = fimInput.value = '';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[onclick="filtrarTempo('todos')"]`).classList.add('active');
+    picker.style.display = 'none';
+    clearBtn.style.display = 'none';
+    aplicarFiltro();
+  };
+
+  function toggleClearBtn() {
+    clearBtn.style.display = filtroTempo === 'todos' ? 'none' : 'inline';
+  }
+
+  window.abrirItem = (tipo, id) => {
+    if (tipo === "Venda") google.script.run.abrirFormVendas(id);
+    else google.script.run.abrirFormQuote(id);
+  };
+
+  window.voltarMenu = () => {
+    google.script.run.withSuccessHandler(html => {
+      document.open();
+      document.write(html);
+      document.close();
+    }).abrirHomeVendedor_WEB();
+  };
+})();
+</script>
 </body>
 </html>

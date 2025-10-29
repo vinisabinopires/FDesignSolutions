@@ -116,19 +116,29 @@
 
 <script>
   function startJourney() {
+    const container = document.getElementById("mainContent");
+
     google.script.run
       .withSuccessHandler(html => {
         if (html) {
-          document.open();
-          document.write(html);
-          document.close();
+          // ✅ Substitui apenas o conteúdo interno, sem recriar o DOM inteiro
+          container.innerHTML = html;
         } else {
-          document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40px">❌ Erro: retorno nulo do servidor</h2>';
+          container.innerHTML = `
+            <h2 style="color:red;text-align:center;margin-top:40px">
+              ❌ Erro: retorno nulo do servidor
+            </h2>`;
         }
       })
-      .abrirPaginaSistema('loginSistema'); // ✅ nome do arquivo HTML
+      .abrirPaginaSistema('loginSistema');
   }
 </script>
 
+
+<body onload="startJourney()">
+  <div id="mainContent">
+    <!-- O conteúdo das páginas internas será injetado aqui -->
+  </div>
 </body>
+
 </html>
