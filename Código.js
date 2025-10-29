@@ -8,21 +8,21 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// ✅ Função central de abertura de páginas internas
+// ============================================================
+// 🔧 Função correta para renderizar páginas internas
+// ============================================================
 function abrirPaginaSistema(pagina) {
   try {
     if (!pagina) throw new Error("Página não especificada.");
-    const html = HtmlService.createHtmlOutputFromFile(pagina)
-      .setTitle('F/Design Solutions — ' + pagina)
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-    return html.getContent();
+    const file = HtmlService.createHtmlOutputFromFile(pagina);
+    if (!file) throw new Error(`Arquivo ${pagina}.html não encontrado.`);
+    return file.getContent(); // ✅ retorna apenas o HTML puro
   } catch (err) {
-    Logger.log("Erro ao abrir página: " + err);
-    return HtmlService.createHtmlOutput(
-      "<h2 style='color:red;text-align:center;margin-top:40px;'>Erro ao carregar página</h2>"
-    ).getContent();
+    Logger.log("❌ Erro ao abrir página: " + err.message);
+    return `<p style="color:red;">Erro ao abrir página: ${err.message}</p>`;
   }
 }
+
 
 // ✅ Função de redirecionamento por tipo de usuário (Admin / Supervisor / Vendedor)
 function abrirHomePorTipo(tipoUsuario) {
@@ -58,76 +58,74 @@ function abrirHomePorTipo(tipoUsuario) {
 }
 
 // ==========================================================
-// 🔍 NEXUS SEARCH — BUSCA UNIFICADA (Vendas + Orçamentos)
+// 🔍 NEXUS SEARCH — BUSCA UNIFICADA (v3.0 — Estruturas Reais)
 // ==========================================================
 function buscarNexus(query) {
   query = query ? query.toString().toLowerCase().trim() : "";
   if (!query) return [];
 
+  const termos = query.split(/\s+/);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+
   const abaVendas = ss.getSheetByName("Client_List");
   const abaOrcamentos = ss.getSheetByName("ORÇAMENTOS");
 
   const dadosVendas = abaVendas.getDataRange().getValues();
   const dadosOrc = abaOrcamentos.getDataRange().getValues();
 
-  // Cabeçalhos para mapear colunas
-  const headerVendas = dadosVendas[0].map(h => h.toString().toLowerCase());
-  const headerOrc = dadosOrc[0].map(h => h.toString().toLowerCase());
-
   const resultados = [];
 
   // ======================================================
-  // 🧾 BUSCA NAS VENDAS
+  // 🧾 VENDAS (Client_List)
   // ======================================================
+  const idxIdVenda = dadosVendas[0].indexOf("SALES_ID");
+  const idxCliente = dadosVendas[0].indexOf("CLIENT NAME");
+  const idxEmpresa = dadosVendas[0].indexOf("BUSINESS NAME");
+  const idxProduto = dadosVendas[0].indexOf("PRODUCT DESCRIPTION");
+  const idxValor = dadosVendas[0].indexOf("AMOUNT");
+  const idxStatus = dadosVendas[0].indexOf("STATUS");
+
   for (let i = 1; i < dadosVendas.length; i++) {
     const linha = dadosVendas[i];
-    const cliente = (linha[headerVendas.indexOf("cliente")] || "").toString().toLowerCase();
-    const telefone = (linha[headerVendas.indexOf("telefone")] || "").toString().toLowerCase();
-    const email = (linha[headerVendas.indexOf("email")] || "").toString().toLowerCase();
-    const produto = (linha[headerVendas.indexOf("produto")] || "").toString().toLowerCase();
-    const id = (linha[headerVendas.indexOf("id")] || "").toString();
-
-    if ([cliente, telefone, email, produto].some(campo => campo.includes(query))) {
+    const texto = linha.join(" ").toLowerCase();
+    if (termos.every(t => texto.includes(t))) {
       resultados.push({
-        id,
-        nomeCliente: linha[headerVendas.indexOf("cliente")] || "",
-        telefone: linha[headerVendas.indexOf("telefone")] || "",
-        email: linha[headerVendas.indexOf("email")] || "",
-        produto: linha[headerVendas.indexOf("produto")] || "",
-        tipo: "Venda"
+        tipo: "Venda",
+        id: linha[idxIdVenda] || "",
+        nomeCliente: linha[idxCliente] || linha[idxEmpresa] || "—",
+        produto: linha[idxProduto] || "—",
+        valor: linha[idxValor] || "",
+        status: linha[idxStatus] || ""
       });
     }
   }
 
   // ======================================================
-  // 💬 BUSCA NOS ORÇAMENTOS
+  // 💬 ORÇAMENTOS
   // ======================================================
+  const idxIdOrc = dadosOrc[0].indexOf("ID_ORC");
+  const idxClienteOrc = dadosOrc[0].indexOf("CLIENTE_NOME");
+  const idxProdutoOrc = dadosOrc[0].indexOf("PRODUTO_NOME");
+  const idxValorOrc = dadosOrc[0].indexOf("VALOR_ESTIMADO");
+  const idxStatusOrc = dadosOrc[0].indexOf("STATUS");
+
   for (let i = 1; i < dadosOrc.length; i++) {
     const linha = dadosOrc[i];
-    const cliente = (linha[headerOrc.indexOf("cliente")] || "").toString().toLowerCase();
-    const telefone = (linha[headerOrc.indexOf("telefone")] || "").toString().toLowerCase();
-    const email = (linha[headerOrc.indexOf("email")] || "").toString().toLowerCase();
-    const produto = (linha[headerOrc.indexOf("produto")] || "").toString().toLowerCase();
-    const id = (linha[headerOrc.indexOf("id")] || "").toString();
-
-    if ([cliente, telefone, email, produto].some(campo => campo.includes(query))) {
+    const texto = linha.join(" ").toLowerCase();
+    if (termos.every(t => texto.includes(t))) {
       resultados.push({
-        id,
-        nomeCliente: linha[headerOrc.indexOf("cliente")] || "",
-        telefone: linha[headerOrc.indexOf("telefone")] || "",
-        email: linha[headerOrc.indexOf("email")] || "",
-        produto: linha[headerOrc.indexOf("produto")] || "",
-        tipo: "Orçamento"
+        tipo: "Orçamento",
+        id: linha[idxIdOrc] || "",
+        nomeCliente: linha[idxClienteOrc] || "—",
+        produto: linha[idxProdutoOrc] || "—",
+        valor: linha[idxValorOrc] || "",
+        status: linha[idxStatusOrc] || ""
       });
     }
   }
 
-  // ======================================================
-  // 🔁 ORDENAÇÃO E RETORNO
-  // ======================================================
   resultados.sort((a, b) => a.nomeCliente.localeCompare(b.nomeCliente));
-  return resultados.slice(0, 50); // retorna até 50 resultados
+  return resultados.slice(0, 50);
 }
 
 // ==========================================================
@@ -160,6 +158,31 @@ function validarLogin(email, pin) {
     return { status: 'erro', msg: 'Credenciais inválidas.' };
   }
 }
+
+// ============================================================
+// 🧠 Função global — lê a aba USUARIOS e cria o dicionário dinâmico
+// ============================================================
+function obterUsuariosMapeados() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("USUARIOS");
+  if (!sheet) throw new Error("Aba 'USUARIOS' não encontrada.");
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift(); // Remove o cabeçalho
+  const users = {};
+
+  data.forEach(row => {
+    const nome = row[0]?.toString().trim();
+    const funcao = row[1]?.toString().trim();
+    const email = row[2]?.toString().trim().toLowerCase();
+    if (email && nome) {
+      users[email] = { nome, funcao };
+    }
+  });
+
+  return users; // Exemplo: { "fernanda@fdesign.com": { nome: "Fernanda", funcao: "Vendedor" }, ... }
+}
+
 
 // ===============================================================
 // SISTEMA DE REGISTRO E GERENCIAMENTO DE VENDAS
@@ -2110,68 +2133,260 @@ function testeRegistrarVenda() {
 // ---------------------------------------------------------------
 function registrarOrcamento(dados) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName("ORÇAMENTOS");
-  if (!sh) return { success: false, message: "Aba ORÇAMENTOS não encontrada." };
-
-  const id = gerarIdUnico("ORC");
-  const vendedor = obterUsuarioAtual();
-  const data = new Date();
+  const sheet = ss.getSheetByName("ORÇAMENTOS");
+  const id = gerarNovoIDOrcamento(); // função geradora de ID
+  const dataCriacao = new Date();
 
   const novaLinha = [
     id,
-    data,
-    vendedor,
-    dados.cliente || "",
-    dados.empresa || "",
+    Utilities.formatDate(dataCriacao, Session.getScriptTimeZone(), "MM/dd/yyyy HH:mm:ss"),
+    dados.origem || "Walk-in",
+    dados.criadoPor || Session.getActiveUser().getEmail(),
+    dados.clienteNome || "",
+    dados.clienteEmail || "",
+    dados.clienteTel || "",
+    dados.descricao || "",
+    dados.valorEstimado || 0,
+    "Em Aberto",                // STATUS
+    "", "", "", "", "", "", "", // campos de acompanhamento
+    "", "", "", "",             // fechamentos
+    dados.categoria || "",
     dados.produto || "",
-    parseFloat(dados.valor) || 0,
-    "Open",
-    0,
-    "",
-    "",
-    `Quote created by ${vendedor} on ${data.toLocaleString()}`
+    dados.quantidade || "",
+    "", "", "", "", "", "", ""  // demais colunas
   ];
 
-  sh.appendRow(novaLinha);
-  return { success: true, id, message: "Orçamento registrado com sucesso." };
+  sheet.appendRow(novaLinha);
+  return "Orçamento salvo com sucesso!";
 }
 
-// ---------------------------------------------------------------
-// 💾 Salvar Novo Orçamento — v2.0 (compatível com layout atualizado)
-// ---------------------------------------------------------------
-// ===============================================================
-// 💾 Salvar novo orçamento (ORÇAMENTOS)
-// ===============================================================
-function salvarOrcamento(formData) {
+
+// ==========================================================
+// 💾 SALVAR NOVO ORÇAMENTO — v2.0 (dinâmica e inteligente)
+// ==========================================================
+function salvarOrcamento(f) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("ORÇAMENTOS");
-
     if (!sheet) throw new Error("Aba 'ORÇAMENTOS' não encontrada.");
 
-    const lastRow = sheet.getLastRow();
-    const nextId = "ORC-" + String(lastRow).padStart(3, "0");
-    const dataCriacao = new Date();
+    // ======================================================
+    // 🧠 Carrega automaticamente o mapa de usuários da aba USUARIOS
+    // ======================================================
+    const usuarios = obterUsuariosMapeados();
+    const emailAtivo = Session.getActiveUser().getEmail()?.toLowerCase();
+    const responsavel = usuarios[emailAtivo]?.nome || emailAtivo || "Desconhecido";
 
-    const novaLinha = [
-      nextId,
-      dataCriacao,
-      formData.origem || "",
-      Session.getActiveUser().getEmail(),
-      formData.clienteNome || "",
-      formData.clienteEmail || "",
-      formData.clienteTel || "",
-      formData.descricao || "",
-      Number(formData.valorEstimado) || 0,
-      "Em Aberto",
-      "", "", "", "", "", "", "", "" // demais colunas da planilha
+    // ======================================================
+    // 📅 Gera novo ID sequencial (ex: ORC-004)
+    // ======================================================
+    const lastRow = sheet.getLastRow();
+    const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : "ORC-000";
+    const nextNumber = parseInt(lastId.replace("ORC-", "")) + 1;
+    const newId = `ORC-${String(nextNumber).padStart(3, "0")}`;
+
+    // ======================================================
+    // 🕒 Data e hora formatadas + Follow-up automático (+3 dias)
+    // ======================================================
+    const tz = Session.getScriptTimeZone();
+    const dateNow = Utilities.formatDate(new Date(), tz, "MM/dd/yyyy HH:mm:ss");
+
+    const followUpDate = new Date();
+    followUpDate.setDate(followUpDate.getDate() + 3);
+    const followUpFormatted = Utilities.formatDate(followUpDate, tz, "MM/dd/yyyy");
+
+    // ======================================================
+    // 💾 Monta a linha completa do orçamento
+    // ======================================================
+    const newRow = [
+      newId,                        // ID_ORC
+      dateNow,                      // DATA_CRIACAO
+      f.origem || "Walk-in",        // ORIGEM
+      emailAtivo,                   // CRIADO_POR_ID (email)
+      f.clienteNome || "",          // CLIENTE_NOME
+      f.clienteEmail || "",         // CLIENTE_EMAIL
+      f.clienteTel || "",           // CLIENTE_TEL
+      f.descricao || "",            // DESCRICAO
+      f.valorEstimado || "",        // VALOR_ESTIMADO
+      "Em Aberto",                  // STATUS
+      "", "", "", "", "", "", "",   // CAMPOS DE CONTROLE (vazios inicialmente)
+      "", "", "",                   // CAMPOS DE VALOR / DATA FECHAMENTO
+      f.produtoCategoria || "",     // PRODUTO_CATEGORIA
+      f.produtoNome || "",          // PRODUTO_NOME
+      f.quantidade || "",           // QUANTIDADE
+      "",                           // MARGEM_ESTIMADA
+      f.canalComunicacao || "",     // CANAL_COMUNICACAO
+      followUpFormatted,            // FOLLOW_UP_NEXT
+      responsavel,                  // RESPONSAVEL_ATUAL (nome do vendedor)
+      "", "",                       // CONVERTIDO_PARA / ARQUIVADO
     ];
 
-    sheet.appendRow(novaLinha);
-    return { status: "ok", id: nextId };
-  } catch (e) {
-    Logger.log("❌ Erro ao salvar orçamento: " + e.message);
-    throw e;
+    // ======================================================
+    // 📥 Insere na planilha
+    // ======================================================
+    sheet.appendRow(newRow);
+
+    // ======================================================
+    // ✅ Retorna dados úteis ao front-end
+    // ======================================================
+    return {
+      id: newId,
+      responsavel,
+      followUp: followUpFormatted,
+      status: "success"
+    };
+
+  } catch (err) {
+    Logger.log("❌ Erro em salvarOrcamento: " + err);
+    throw new Error("Erro ao salvar orçamento: " + err.message);
+  }
+}
+
+
+// ==========================================================
+// 🧠 MAPEAMENTO DINÂMICO DE USUÁRIOS (Aba: USUARIOS)
+// ==========================================================
+function obterUsuariosMapeados() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("USUARIOS");
+  if (!sheet) throw new Error("Aba 'USUARIOS' não encontrada.");
+
+  const data = sheet.getDataRange().getValues();
+  data.shift(); // Remove cabeçalho
+
+  const usuarios = {};
+  data.forEach(row => {
+    const nome = row[0]?.toString().trim();
+    const funcao = row[1]?.toString().trim();
+    const email = row[2]?.toString().trim().toLowerCase();
+    if (email && nome) usuarios[email] = { nome, funcao };
+  });
+
+  return usuarios;
+}
+
+// ==========================================================
+// 🔄 CONVERTER ORÇAMENTO EM VENDA — v1.0
+// ==========================================================
+function converterOrcamentoEmVenda(idOrcamento) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetOrc = ss.getSheetByName("ORÇAMENTOS");
+    const sheetVen = ss.getSheetByName("CLIENT_LIST");
+    if (!sheetOrc) throw new Error("Aba 'ORÇAMENTOS' não encontrada.");
+    if (!sheetVen) throw new Error("Aba 'CLIENT_LIST' não encontrada.");
+
+    // ======================================================
+    // 🔎 Localiza o orçamento pelo ID
+    // ======================================================
+    const data = sheetOrc.getDataRange().getValues();
+    const headers = data[0];
+    const idIndex = headers.indexOf("ID_ORC");
+    if (idIndex === -1) throw new Error("Coluna 'ID_ORC' não encontrada.");
+
+    const rowIndex = data.findIndex(r => r[idIndex] === idOrcamento);
+    if (rowIndex === -1) throw new Error(`Orçamento ${idOrcamento} não encontrado.`);
+
+    // Dados da linha (lembrando que findIndex retorna índice da matriz, não da planilha)
+    const orcRow = data[rowIndex];
+
+    // ======================================================
+    // 📆 Calcula tempo de fechamento
+    // ======================================================
+    const tz = Session.getScriptTimeZone();
+    const dataCriacaoStr = orcRow[1]; // DATA_CRIACAO
+    const dataCriacao = new Date(dataCriacaoStr);
+    const dataFechamento = new Date();
+    const tempoFechamento = Math.ceil((dataFechamento - dataCriacao) / (1000 * 60 * 60 * 24));
+    const dataFechamentoFmt = Utilities.formatDate(dataFechamento, tz, "MM/dd/yyyy HH:mm:ss");
+
+    // ======================================================
+    // 💾 Gera novo ID de venda (VEN-###)
+    // ======================================================
+    const lastRowVen = sheetVen.getLastRow();
+    const lastVenId = lastRowVen > 1 ? sheetVen.getRange(lastRowVen, 1).getValue() : "VEN-000";
+    const nextVenNumber = parseInt(lastVenId.replace("VEN-", "")) + 1;
+    const newVenId = `VEN-${String(nextVenNumber).padStart(3, "0")}`;
+
+    // ======================================================
+    // 🧠 Identifica vendedor / responsável
+    // ======================================================
+    const usuarios = obterUsuariosMapeados();
+    const emailAtivo = Session.getActiveUser().getEmail()?.toLowerCase();
+    const responsavel = usuarios[emailAtivo]?.nome || emailAtivo || "Desconhecido";
+
+    // ======================================================
+    // 💰 Extrai informações do orçamento
+    // ======================================================
+    const clienteNome = orcRow[4];
+    const clienteEmail = orcRow[5];
+    const clienteTel = orcRow[6];
+    const descricao = orcRow[7];
+    const valorEstimado = parseFloat((orcRow[8] || "0").toString().replace(/[^\d.-]/g, ""));
+    const produtoCategoria = orcRow[21];
+    const produtoNome = orcRow[22];
+    const quantidade = orcRow[23];
+    const canal = orcRow[25];
+    const origem = orcRow[2];
+
+    // ======================================================
+    // 🧾 Cria linha da venda (CLIENT_LIST)
+    // ======================================================
+    const newSale = [
+      newVenId,                                      // SALES_ID
+      Utilities.formatDate(new Date(), tz, "MM/dd/yyyy HH:mm:ss"), // DATE
+      origem || "Converted",                         // TYPE
+      "Full Payment",                                // STATUS (ajustável depois)
+      "",                                            // COMMISSION VALUE
+      clienteNome || "",                             // CLIENT NAME
+      "",                                            // BUSINESS NAME
+      "",                                            // INVOICE #
+      `${produtoCategoria} — ${produtoNome}`,        // PRODUCT DESCRIPTION
+      valorEstimado || "",                           // AMOUNT
+      0,                                             // BALANCE DUE
+      valorEstimado || "",                           // AMOUNT PAID
+      "To Define",                                   // PAYMENT METHOD
+      descricao || "",                               // NOTES
+      "10%",                                         // % OF SALES (padrão inicial)
+      emailAtivo,                                    // SELLER_ID
+      emailAtivo                                     // CREATED_BY
+    ];
+
+    // ======================================================
+    // 📥 Insere a nova venda
+    // ======================================================
+    sheetVen.appendRow(newSale);
+
+    // ======================================================
+    // 🔁 Atualiza o orçamento original
+    // ======================================================
+    const colStatus = headers.indexOf("STATUS") + 1;
+    const colValorFechado = headers.indexOf("VALOR_FECHADO") + 1;
+    const colDataFechamento = headers.indexOf("DATA_FECHAMENTO") + 1;
+    const colTempoFechamento = headers.indexOf("TEMPO_FECHAMENTO_DIAS") + 1;
+    const colConvertidoPara = headers.indexOf("CONVERTIDO_PARA") + 1;
+
+    if (colStatus > 0) sheetOrc.getRange(rowIndex + 1, colStatus).setValue("Convertido");
+    if (colValorFechado > 0) sheetOrc.getRange(rowIndex + 1, colValorFechado).setValue(valorEstimado);
+    if (colDataFechamento > 0) sheetOrc.getRange(rowIndex + 1, colDataFechamento).setValue(dataFechamentoFmt);
+    if (colTempoFechamento > 0) sheetOrc.getRange(rowIndex + 1, colTempoFechamento).setValue(tempoFechamento);
+    if (colConvertidoPara > 0) sheetOrc.getRange(rowIndex + 1, colConvertidoPara).setValue(newVenId);
+
+    // ======================================================
+    // ✅ Retorno pro front-end
+    // ======================================================
+    return {
+      status: "success",
+      idVenda: newVenId,
+      idOrcamento: idOrcamento,
+      cliente: clienteNome,
+      valor: valorEstimado,
+      tempoFechamento
+    };
+
+  } catch (err) {
+    Logger.log("❌ Erro em converterOrcamentoEmVenda: " + err);
+    throw new Error("Erro ao converter orçamento: " + err.message);
   }
 }
 

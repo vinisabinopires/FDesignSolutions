@@ -35,27 +35,26 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 🔙 Botão de Voltar — padrão Nexus Flow */
-.back-btn {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: 0.25s;
-  z-index: 9999;
-  backdrop-filter: blur(8px);
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
-}
+    /* 🔙 Botão de Voltar */
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.25s;
+      z-index: 9999;
+      backdrop-filter: blur(8px);
+    }
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
 
     .form-title {
       text-align: center;
@@ -134,7 +133,6 @@
       transition: all 0.3s ease;
       box-shadow: 0 4px 12px rgba(251,188,4,0.3);
     }
-
     .main-button:hover {
       transform: translateY(-2px);
       background: linear-gradient(90deg, #ffcc33, #fbbc04);
@@ -156,16 +154,42 @@
       transition: all 0.4s ease;
       z-index: 200;
     }
-
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.success { background: linear-gradient(90deg, #43a047, #66bb6a); }
     .toast.error { background: linear-gradient(90deg, #e53935, #ef5350); }
+
+    /* =======================================================
+🎨 CORREÇÃO VISUAL — CAMPOS DE SELEÇÃO (Dropdown)
+======================================================= */
+    select {
+      background-color: #12224e;
+      color: #fff;
+      border: 1px solid #2c3e70;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 14px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      cursor: pointer;
+    }
+    select:hover { background-color: #1b3168; }
+    select:focus {
+      outline: none;
+      border-color: #4a6fff;
+      box-shadow: 0 0 5px rgba(74, 111, 255, 0.5);
+    }
+    option { background-color: #12224e; color: #fff; }
+    option:hover, option:checked {
+      background-color: #4a6fff;
+      color: #fff;
+    }
   </style>
 </head>
 
 <body>
   <div class="form-container">
-   <button class="back-btn" onclick="voltarMenu()">← Voltar ao Painel</button>
+    <button class="back-btn" onclick="voltarMenu()">← Voltar ao Painel</button>
 
     <h1 class="form-title">💡 New Quote</h1>
     <p class="form-subtitle">Register a new customer quote and save it to the system.</p>
@@ -215,15 +239,12 @@
   <div id="toast" class="toast"></div>
 
   <script>
+  (() => {
     let isSaving = false;
 
     document.addEventListener("DOMContentLoaded", () => {
-      const backBtn = document.getElementById("btnBackDashboard");
       const saveBtn = document.getElementById("saveQuoteBtn");
-
-      if (saveBtn) {
-        saveBtn.addEventListener("click", confirmarSalvar);
-      }
+      if (saveBtn) saveBtn.addEventListener("click", confirmarSalvar);
     });
 
     function confirmarSalvar() {
@@ -261,16 +282,17 @@
 
     function getFormData() {
       return {
-        origem: document.getElementById("origem").value,
-        clienteNome: document.getElementById("clienteNome").value,
-        clienteEmail: document.getElementById("clienteEmail").value,
-        clienteTel: document.getElementById("clienteTel").value,
-        produtoCategoria: document.getElementById("produtoCategoria").value,
-        produtoNome: document.getElementById("produtoNome").value,
-        quantidade: document.getElementById("quantidade").value,
-        valorEstimado: document.getElementById("valorEstimado").value,
-        descricao: document.getElementById("descricao").value,
-        canalComunicacao: document.getElementById("canalComunicacao").value
+        origem: document.getElementById("origem")?.value,
+        clienteNome: document.getElementById("clienteNome")?.value?.trim(),
+        clienteEmail: document.getElementById("clienteEmail")?.value?.trim(),
+        clienteTel: document.getElementById("clienteTel")?.value?.trim(),
+        produtoCategoria: document.getElementById("produtoCategoria")?.value,
+        produtoNome: document.getElementById("produtoNome")?.value?.trim(),
+        quantidade: document.getElementById("quantidade")?.value,
+        valorEstimado: document.getElementById("valorEstimado")?.value?.trim(),
+        descricao: document.getElementById("descricao")?.value?.trim(),
+        canalComunicacao: document.getElementById("canalComunicacao")?.value,
+        criadoPor: "",
       };
     }
 
@@ -282,18 +304,20 @@
       setTimeout(() => (t.className = "toast"), 3500);
     }
 
-    function voltarMenu() {
-  document.body.style.transition = "opacity 0.4s ease";
-  document.body.style.opacity = "0";
-  setTimeout(() => {
-    google.script.run.withSuccessHandler(html => {
-      document.open();
-      document.write(html);
-      document.close();
-    }).abrirHomeVendedor_WEB(); // versão web compatível
-  }, 350);
-}
-
+    window.voltarMenu = function () {
+      document.body.style.transition = "opacity 0.4s ease";
+      document.body.style.opacity = "0";
+      setTimeout(() => {
+        google.script.run
+          .withSuccessHandler(html => {
+            const container = document.getElementById("mainContent") || document.body;
+            container.innerHTML = html;
+            document.body.style.opacity = "1";
+          })
+          .abrirHomeVendedor_WEB();
+      }, 350);
+    };
+  })();
   </script>
 </body>
 </html>
